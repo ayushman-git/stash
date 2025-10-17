@@ -4,3 +4,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+chrono = "0.4.42"
+clap = { version = "4.5.49", features = ["derive"] }
+colored = "3.0.0"
+comfy-table = "7.2.1"
+html2md = "0.2.15"
+indicatif = "0.18.0"
+readability = "0.3.0"
+refinery = "0.9.0"
+reqwest = "0.12.24"
+rusqlite = "0.37.0"
+scraper = "0.24.0"
