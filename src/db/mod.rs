@@ -23,3 +23,15 @@ pub fn get_db_path() -> Result<PathBuf> {
 
     Ok(data_dir.join("articles.db"))
 }
+
+pub fn open_connection() -> Result<Connection> {
+    let db_path = get_db_path()?;
+    let mut conn = Connection::open(db_path)
+        .context("Failed to open database connection")?;
+
+    embedded::migrations::runner()
+        .run(&mut conn)
+        .context("Failed to run database migrations")?;
+
+    Ok(conn)
+}
