@@ -7,10 +7,10 @@ Stash is a local-first Rust CLI for saving and organizing articles. Built for sp
 
 **CRITICAL: This project is primarily a learning vehicle for mastering Rust.** When providing assistance:
 
+Also I'm an intermediate software engineer so don't overexplain basic programming concepts—focus on Rust-specific idioms and best practices.
+
 1. **Always explain the "why" before the "how"**
    - Why this particular Rust pattern or idiom?
-   - Why this crate over alternatives?
-   - Why this architecture decision?
 
 2. **Break down complex Rust concepts**
    - Explain ownership, borrowing, and lifetimes when they appear
@@ -18,22 +18,11 @@ Stash is a local-first Rust CLI for saving and organizing articles. Built for sp
    - Describe error handling patterns (`Result`, `Option`, `?` operator)
    - Explain iterator chains and closure syntax
 
-3. **Provide context for Rust-specific choices**
-   - Why blocking I/O instead of async? (Simpler mental model for CLI, no runtime overhead)
-   - Why `anyhow::Result` over `std::result::Result<T, E>`? (Ergonomic error context chaining)
-   - Why threads over async for parallel fetching? (No tokio runtime, stdlib only)
-
-4. **Teach through examples**
+3. **Teach through examples**
    - Show idiomatic Rust patterns in code suggestions
    - Explain common pitfalls (e.g., `String` vs `&str`, `clone()` overuse)
    - Demonstrate Rust's type system benefits
-
-5. **Reference learning resources**
-   - Point to relevant chapters in "The Rust Book" when applicable
-   - Explain crate documentation patterns
-   - Highlight Rust ecosystem conventions
-
-**Goal: After each interaction, the developer should understand not just what code to write, but why it's written that way and how it leverages Rust's unique features.**
+   
 
 ## Architecture
 
