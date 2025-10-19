@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use reqwest::redirect::Policy;
+use reqwest::{redirect::Policy, Url};
 
 pub fn fetch_html(url: &String) -> Result<String> {
     let client = reqwest::blocking::Client::builder()
@@ -19,4 +19,12 @@ pub fn fetch_html(url: &String) -> Result<String> {
     let html = response.text().context("Failed to read responsy body")?;
 
     Ok(html)
+}
+
+pub fn extract_site(url: &str) -> Option<String> {
+    let url = Url::parse(&url).ok()?;
+    let host = url.host_str()?;
+    let host = host.strip_prefix("www.").unwrap_or(host);
+
+    Some(host.to_string())
 }

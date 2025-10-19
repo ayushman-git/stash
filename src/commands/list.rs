@@ -1,12 +1,12 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 
-use crate::{db::{self, open_connection}, ui::{self, list::render_articles}};
+use crate::{db::{self, open_connection}, ui};
 
 pub fn execute(archived: bool, format: String) -> Result<()> {
     let conn = open_connection()?;
 
-    let articles = db::queries::list_articles(&conn, 10, archived)
-        .context("Failed to query articles")?;
+    let articles =
+        db::queries::list_articles(&conn, 10, archived).context("Failed to query articles")?;
 
     if articles.is_empty() {
         let msg = if archived {
