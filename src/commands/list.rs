@@ -1,21 +1,18 @@
 use anyhow::{Context, Result, bail};
 
-use crate::{db::{self, open_connection}, ui};
+use crate::{
+    db::{self, open_connection},
+    ui,
+};
 
-pub fn execute(archived: bool, format: String) -> Result<()> {
+pub fn execute(all: bool, format: String) -> Result<()> {
     let conn = open_connection()?;
 
     let articles =
-        db::queries::list_articles(&conn, 10, archived).context("Failed to query articles")?;
+        db::queries::list_articles(&conn, 10, all).context("Failed to query articles")?;
 
     if articles.is_empty() {
-        let msg = if archived {
-            "No archived articles found"
-        } else {
-            "No articles found. Add one with `stash add <url>`"
-        };
-
-        println!("{}", msg);
+        println!("No articles found!");
         return Ok(());
     }
 

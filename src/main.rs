@@ -25,7 +25,7 @@ enum Commands {
     #[command(alias = "ls")]
     List {
         #[arg(short, long)]
-        archived: bool,
+        all: bool,
 
         #[arg(short, long, default_value = "table")]
         format: String,
@@ -53,8 +53,8 @@ fn main() -> Result<()> {
         Commands::Add { url, tags } => {
             commands::add::execute(url, tags)?;
         }
-        Commands::List { archived, format } => {
-            commands::list::execute(archived, format)?;
+        Commands::List { all, format } => {
+            commands::list::execute(all, format)?;
         }
         Commands::Remove { ids, force } => {
             commands::remove::execute(&ids, force)?;
