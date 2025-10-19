@@ -16,7 +16,15 @@ pub fn fetch_html(url: &String) -> Result<String> {
         .send()
         .context("Failed to send HTTP request")?;
 
-    let html = response.text().context("Failed to read responsy body")?;
+    if !response.status().is_success() {
+        anyhow::bail!("HTTP request failed with status: {}", response.status());
+    }
+
+    let html = response.text().context("Failed to read response body")?;
+
+    if html.trim().is_empty() {
+        anyhow::bail!("Received empty response body");
+    }
 
     Ok(html)
 }

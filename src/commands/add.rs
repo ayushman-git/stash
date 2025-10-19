@@ -1,6 +1,13 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 
-use crate::{db::{models::NewArticle, open_connection, queries}, fetch::{http::{extract_site, fetch_html}, metadata::{extract_metadata, Metadata}}};
+use crate::{
+    db::{models::NewArticle, open_connection, queries},
+    fetch::{
+        content::convert_html_to_md,
+        http::{extract_site, fetch_html},
+        metadata::extract_metadata,
+    },
+};
 
 pub fn execute(url: String, tags: Vec<String>) -> Result<()> {
     let conn = open_connection()?;
@@ -16,22 +23,41 @@ pub fn execute(url: String, tags: Vec<String>) -> Result<()> {
         std::process::exit(3); // 3 for duplicate
     }
 
-    let html = fetch_html(&url)?;
-    let meta: Metadata = extract_metadata(&html)?;
+    let (title, description, favicon_url, content_markdown) = match fetch_html(&url) {
+        Ok(html) => {
+            let meta = extract_metadata(&html).ok();
+            let title = meta.as_ref().and_then(|m| m.title.clone());
+            let description = meta.as_ref().and_then(|m| m.description.clone());
+            let favicon_url = meta.as_ref().and_then(|m| m.favicon_url.clone());
+
+            let content_markdown = convert_html_to_md(&html);
+
+            (title, description, favicon_url, content_markdown)
+        }
+        Err(e) => {
+            eprintln!("Warning: Failed to fetch content: {}", e);
+            eprintln!("Saving URL only...");
+
+            let domain = extract_site(&url);
+            (domain.clone(), None, None, None)
+        }
+    };
 
     let new_article = NewArticle {
         hash,
         url: url.clone(),
         canonical_url: url.clone(),
-        title: meta.title,
-        description: meta.description,
-        favicon_url: meta.favicon_url,
+        title,
+        description,
+        favicon_url,
         site: extract_site(&url),
-        content_markdown: None,
+        content_markdown,
         tags,
     };
 
-    let id = queries::insert_article(&conn, new_article)?;
+    let id = queries::insert_article(&conn, new_article)
+        .context("Failed to save article to database")?;
+
     println!("Article saved with ID: {}", id);
 
     Ok(())
