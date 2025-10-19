@@ -1,7 +1,7 @@
 use crate::db::models::{Article, NewArticle};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
-use rusqlite::{params, Connection, OptionalExtension, Row};
+use rusqlite::{Connection, OptionalExtension, Row, params, params_from_iter};
 
 pub fn row_to_article(row: &Row) -> rusqlite::Result<Article> {
     let saved_at_unix: i64 = row.get("saved_at")?;
@@ -57,9 +57,7 @@ pub fn insert_article(conn: &Connection, article: NewArticle) -> Result<i64> {
 }
 
 pub fn find_by_hash(conn: &Connection, hash: &str) -> Result<Option<Article>> {
-    let mut stmt = conn.prepare(
-        "SELECT * FROM articles where hash = ?1"
-    )?;
+    let mut stmt = conn.prepare("SELECT * FROM articles where hash = ?1")?;
 
     let article = stmt
         .query_row(params![hash], row_to_article)
@@ -85,4 +83,41 @@ pub fn list_articles(conn: &Connection, limit: usize, archived: bool) -> Result<
         .context("Failed to list articles")?;
 
     Ok(articles)
+}
+
+pub fn archive_by_ids(conn: &Connection, ids: &[i64]) -> Result<usize> {
+    if ids.is_empty() {
+        return Ok(0);
+    }
+
+    // Generate placeholders: "?, ?, ?"
+    let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+
+    let query = format!(
+        "UPDATE articles SET archived = 1 WHERE id IN ({})",
+        placeholders
+    );
+
+    // Execute with dynamic parameter binding
+    let affected = conn
+        .execute(&query, params_from_iter(ids))
+        .context("Failed to archive articles")?;
+
+    Ok(affected)
+}
+
+pub fn delete_by_ids(conn: &Connection, ids: &[i64]) -> Result<usize> {
+    if ids.is_empty() {
+        return Ok(0);
+    }
+
+    let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+
+    let query = format!("DELETE FROM articles WHERE id IN ({})", placeholders);
+
+    let affected = conn
+        .execute(&query, params_from_iter(ids))
+        .context("Failed to delete articles")?;
+
+    Ok(affected)
 }

@@ -27,6 +27,10 @@ enum Commands {
         #[arg(short, long, default_value = "table")]
         format: String,
     },
+    Remove {
+        #[arg(short, long)]
+        ids: Vec<i64>,
+    },
 }
 
 fn main() -> Result<()> {
@@ -38,6 +42,9 @@ fn main() -> Result<()> {
         }
         Commands::List { archived, format } => {
             commands::list::execute(archived, format)?;
+        }
+        Commands::Remove { ids } => {
+            commands::remove::execute(ids)?;
         }
     }
     Ok(())
