@@ -28,7 +28,7 @@ pub fn render_ids(articles: &[Article]) -> Result<()> {
 
 fn format_timestamp(dt: &DateTime<Utc>) -> String {
     let local = dt.with_timezone(&Local);
-    local.format("%H:%M %d-%m").to_string()
+    local.format("%H:%M %d/%m").to_string()
 }
 
 pub fn render_table(articles: &[Article]) -> Result<()> {

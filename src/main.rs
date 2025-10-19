@@ -17,7 +17,7 @@ struct Cli {
 enum Commands {
     Add {
         url: String,
-        #[arg(short, long)]
+        #[arg(short, long, value_delimiter = ',')]
         tags: Vec<String>,
     },
 
