@@ -52,6 +52,7 @@ enum Commands {
         #[arg(value_delimiter = ',')]
         ids: Vec<i64>,
     },
+    Pick
 }
 
 fn main() -> Result<()> {
@@ -75,6 +76,9 @@ fn main() -> Result<()> {
         }
         Commands::Unstar { ids } => {
             commands::unstar::execute(&ids)?;
+        }
+        Commands::Pick => {
+            commands::pick::execute()?;
         }
     }
     Ok(())
