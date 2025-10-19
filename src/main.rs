@@ -20,6 +20,8 @@ enum Commands {
         #[arg(short, long)]
         tags: Vec<String>,
     },
+
+    #[command(alias = "ls")]
     List {
         #[arg(short, long)]
         archived: bool,
@@ -27,6 +29,8 @@ enum Commands {
         #[arg(short, long, default_value = "table")]
         format: String,
     },
+
+    #[command(alias = "rm")]
     Remove {
         #[arg(short, long)]
         ids: Vec<i64>,
