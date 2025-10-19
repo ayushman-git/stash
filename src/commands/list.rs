@@ -1,8 +1,8 @@
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 
-use crate::db::{self, open_connection};
+use crate::{db::{self, open_connection}, ui::{self, list::render_articles}};
 
-pub fn execute(archived: bool) -> Result<()> {
+pub fn execute(archived: bool, format: String) -> Result<()> {
     let conn = open_connection()?;
 
     let articles = db::queries::list_articles(&conn, 10, archived)
@@ -19,7 +19,17 @@ pub fn execute(archived: bool) -> Result<()> {
         return Ok(());
     }
 
-    
+    let output_format = match format.as_str() {
+        "json" => ui::list::OutputFormat::Json,
+        "ids" => ui::list::OutputFormat::Ids,
+        "table" => ui::list::OutputFormat::Table,
+        _ => {
+            bail!("Invalid format '{}'. Use table, json or ids", format);
+        }
+    };
+
+    crate::ui::list::render_articles(&articles, output_format)
+        .context("Failed to render articles")?;
 
     Ok(())
 }

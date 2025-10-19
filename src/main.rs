@@ -1,4 +1,5 @@
 mod commands;
+mod ui;
 mod db;
 
 use clap::{Parser, Subcommand};
@@ -22,6 +23,9 @@ enum Commands {
     List {
         #[arg(short, long)]
         archived: bool,
+
+        #[arg(short, long, default_value = "table")]
+        format: String,
     },
 }
 
@@ -32,8 +36,8 @@ fn main() -> Result<()> {
         Commands::Add { url, tags } => {
             commands::add::execute(url, tags)?;
         }
-        Commands::List { archived } => {
-            commands::list::execute(archived)?;
+        Commands::List { archived, format } => {
+            commands::list::execute(archived, format)?;
         }
     }
     Ok(())
