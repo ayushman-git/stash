@@ -139,3 +139,23 @@ pub fn delete_by_ids(conn: &Connection, ids: &[i64]) -> Result<usize> {
 
     Ok(affected)
 }
+
+pub fn set_starred_by_ids(conn: &Connection, ids: &[i64], starred: bool) -> Result<usize> {
+    if ids.is_empty() {
+        return Ok(0);
+    }
+
+    let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+
+    let query = format!(
+        "UPDATE articles SET starred = {} WHERE id IN ({})",
+        if starred { 1 } else { 0 },
+        placeholders
+    );
+
+    let affected = conn
+        .execute(&query, params_from_iter(ids))
+        .context("Failed to update starred status")?;
+
+    Ok(affected)
+}

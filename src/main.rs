@@ -44,6 +44,14 @@ enum Commands {
         #[arg(value_delimiter = ',')]
         ids: Vec<i64>,
     },
+    Star {
+        #[arg(value_delimiter = ',')]
+        ids: Vec<i64>,
+    },
+    Unstar {
+        #[arg(value_delimiter = ',')]
+        ids: Vec<i64>,
+    },
 }
 
 fn main() -> Result<()> {
@@ -61,6 +69,12 @@ fn main() -> Result<()> {
         }
         Commands::Open { ids } => {
             commands::open::execute(&ids)?;
+        }
+        Commands::Star { ids } => {
+            commands::star::execute(&ids)?;
+        }
+        Commands::Unstar { ids } => {
+            commands::unstar::execute(&ids)?;
         }
     }
     Ok(())
