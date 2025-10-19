@@ -2,6 +2,7 @@ mod commands;
 mod db;
 
 use clap::{Parser, Subcommand};
+use anyhow::Result;
 
 #[derive(Parser)]
 #[command(name = "stash")]
@@ -19,6 +20,7 @@ enum Commands {
         tags: Vec<String>,
     },
     List {
+        #[arg(short, long)]
         archived: bool,
     },
 }
@@ -28,10 +30,10 @@ fn main() {
 
     match cli.command {
         Commands::Add { url, tags } => {
-            commands::add::execute(url, tags);
+            commands::add::execute(url, tags)?;
         }
         Commands::List { archived } => {
-            commands::list::execute(archived);
+            commands::list::execute(archived)?;
         }
     }
 }
