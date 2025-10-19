@@ -30,6 +30,9 @@ enum Commands {
     Remove {
         #[arg(short, long)]
         ids: Vec<i64>,
+
+        #[arg(short, long)]
+        force: bool,
     },
 }
 
@@ -43,8 +46,8 @@ fn main() -> Result<()> {
         Commands::List { archived, format } => {
             commands::list::execute(archived, format)?;
         }
-        Commands::Remove { ids } => {
-            commands::remove::execute(ids)?;
+        Commands::Remove { ids, force } => {
+            commands::remove::execute(&ids, force)?;
         }
     }
     Ok(())
