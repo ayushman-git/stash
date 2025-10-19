@@ -1,6 +1,7 @@
 mod commands;
 mod ui;
 mod db;
+mod fetch;
 
 use clap::{Parser, Subcommand};
 use anyhow::Result;
@@ -32,7 +33,6 @@ enum Commands {
 
     #[command(alias = "rm")]
     Remove {
-        #[arg(short, long)]
         ids: Vec<i64>,
 
         #[arg(short, long)]
