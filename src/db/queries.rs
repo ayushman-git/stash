@@ -67,15 +67,22 @@ pub fn find_by_hash(conn: &Connection, hash: &str) -> Result<Option<Article>> {
     Ok(article)
 }
 
-pub fn find_by_id(conn: &Connection, id: &i64) -> Result<Option<Article>> {
-    let mut stmt = conn.prepare("SELECT * FROM articles WHERE id = ?1")?;
+pub fn find_by_ids(conn: &Connection, ids: &[i64]) -> Result<Vec<Article>> {
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
 
-    let article = stmt
-        .query_row(params![id], row_to_article)
-        .optional()
-        .context("Failed to query article by ID")?;
+    let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
 
-    Ok(article)
+    let query = format!("SELECT * FROM articles WHERE id IN ({})", placeholders);
+
+    let mut stmt = conn.prepare(&query)?;
+    let articles = stmt
+        .query_map(params_from_iter(ids), row_to_article)?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .context("Failed to query articles by IDs")?;
+
+    Ok(articles)
 }
 
 pub fn list_articles(conn: &Connection, limit: usize, archived: bool) -> Result<Vec<Article>> {

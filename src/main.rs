@@ -40,7 +40,10 @@ enum Commands {
     },
 
     #[command(alias = "o")]
-    Open { id: i64 },
+    Open {
+        #[arg(value_delimiter = ',')]
+        ids: Vec<i64>,
+    },
 }
 
 fn main() -> Result<()> {
@@ -56,8 +59,8 @@ fn main() -> Result<()> {
         Commands::Remove { ids, force } => {
             commands::remove::execute(&ids, force)?;
         }
-        Commands::Open { id } => {
-            commands::open::execute(&id)?;
+        Commands::Open { ids } => {
+            commands::open::execute(&ids)?;
         }
     }
     Ok(())

@@ -1,11 +1,14 @@
 use anyhow::Result;
 
-use crate::db::{open_connection, queries::find_by_id};
+use crate::db::{open_connection, queries::find_by_ids};
 
-pub fn execute(id: &i64) -> Result<()> {
+pub fn execute(ids: &[i64]) -> Result<()> {
     let conn = open_connection()?;
 
-    let article = find_by_id(&conn, id)?;
-    browser::that(article.unwrap().url);
+    let articles = find_by_ids(&conn, ids)?;
+
+    for article in articles {
+        browser::that(article.url)?;
+    }
     Ok(())
 }
