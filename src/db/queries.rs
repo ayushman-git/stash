@@ -67,6 +67,17 @@ pub fn find_by_hash(conn: &Connection, hash: &str) -> Result<Option<Article>> {
     Ok(article)
 }
 
+pub fn find_by_id(conn: &Connection, id: &i64) -> Result<Option<Article>> {
+    let mut stmt = conn.prepare("SELECT * FROM articles WHERE id = ?1")?;
+
+    let article = stmt
+        .query_row(params![id], row_to_article)
+        .optional()
+        .context("Failed to query article by ID")?;
+
+    Ok(article)
+}
+
 pub fn list_articles(conn: &Connection, limit: usize, archived: bool) -> Result<Vec<Article>> {
     let query = if archived {
         "SELECT * FROM articles WHERE archived = 1

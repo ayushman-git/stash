@@ -1,10 +1,10 @@
 mod commands;
-mod ui;
 mod db;
 mod fetch;
+mod ui;
 
-use clap::{Parser, Subcommand};
 use anyhow::Result;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "stash")]
@@ -38,6 +38,9 @@ enum Commands {
         #[arg(short, long)]
         force: bool,
     },
+
+    #[command(alias = "o")]
+    Open { id: i64 },
 }
 
 fn main() -> Result<()> {
@@ -52,6 +55,9 @@ fn main() -> Result<()> {
         }
         Commands::Remove { ids, force } => {
             commands::remove::execute(&ids, force)?;
+        }
+        Commands::Open { id } => {
+            commands::open::execute(&id)?;
         }
     }
     Ok(())
