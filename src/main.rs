@@ -25,7 +25,7 @@ enum Commands {
     },
 }
 
-fn main() {
+fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
@@ -36,4 +36,5 @@ fn main() {
             commands::list::execute(archived)?;
         }
     }
+    Ok(())
 }
