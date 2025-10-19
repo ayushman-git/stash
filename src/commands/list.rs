@@ -25,7 +25,7 @@ pub fn execute(all: bool, format: String) -> Result<()> {
         }
     };
 
-    crate::ui::list::render_articles(&articles, output_format)
+    crate::ui::list::render_articles(&articles, output_format, all)
         .context("Failed to render articles")?;
 
     Ok(())

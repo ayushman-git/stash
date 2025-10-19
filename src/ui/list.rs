@@ -10,9 +10,9 @@ pub enum OutputFormat {
     Ids,
 }
 
-pub fn render_articles(articles: &[Article], format: OutputFormat) -> Result<()> {
+pub fn render_articles(articles: &[Article], format: OutputFormat, all: bool) -> Result<()> {
     match format {
-        OutputFormat::Table => render_table(articles),
+        OutputFormat::Table => render_table(articles, all),
         OutputFormat::Json => render_json(articles),
         OutputFormat::Ids => render_ids(articles),
     }
@@ -31,22 +31,32 @@ fn format_timestamp(dt: &DateTime<Utc>) -> String {
     local.format("%H:%M %d/%m").to_string()
 }
 
-pub fn render_table(articles: &[Article]) -> Result<()> {
+pub fn render_table(articles: &[Article], all: bool) -> Result<()> {
     let mut table = Table::new();
     table.load_preset(presets::UTF8_FULL);
     table.set_content_arrangement(ContentArrangement::Dynamic);
 
-    table.set_header(vec!["ID", "*", "Title", "Site", "Tags", "Saved"]);
+    let mut headers = vec!["ID", "*", "Title", "Site", "Tags", "Saved"];
+    if all {
+        headers.push("Archived");
+    }
+    table.set_header(headers);
 
     for article in articles {
-        table.add_row(vec![
+        let mut row = vec![
             Cell::new(article.id),
             Cell::new(if article.starred { "★" } else { "" }),
             Cell::new(article.title.as_deref().unwrap_or("<no title>")),
             Cell::new(article.site.as_deref().unwrap_or("")),
             Cell::new(article.tags.join(", ")),
             Cell::new(format_timestamp(&article.saved_at)),
-        ]);
+        ];
+        
+        if all {
+            row.push(Cell::new(if article.archived { "x" } else { "" }));
+        }
+        
+        table.add_row(row);
     }
     
     println!("{}", table);
