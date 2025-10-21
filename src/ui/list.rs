@@ -42,16 +42,16 @@ pub fn render_table(articles: &[Article], all: bool, archived: bool) -> Result<(
     table.set_content_arrangement(ContentArrangement::Dynamic);
 
     let mut headers = vec![
-        "ID",
-        "",
-        "Title",
-        "Read",
-        "Site",
-        "Tags",
-        "Saved",
+        Cell::new("ID").fg(Color::Cyan).add_attribute(Attribute::Bold),
+        Cell::new("").fg(Color::Cyan).add_attribute(Attribute::Bold),
+        Cell::new("Title").fg(Color::Cyan).add_attribute(Attribute::Bold),
+        Cell::new("Read").fg(Color::Cyan).add_attribute(Attribute::Bold),
+        Cell::new("Site").fg(Color::Cyan).add_attribute(Attribute::Bold),
+        Cell::new("Tags").fg(Color::Cyan).add_attribute(Attribute::Bold),
+        Cell::new("Saved").fg(Color::Cyan).add_attribute(Attribute::Bold),
     ];
     if all || archived {
-        headers.push("Archived");
+        headers.push(Cell::new("Archived").fg(Color::Cyan).add_attribute(Attribute::Bold));
     }
     table.set_header(headers);
 
