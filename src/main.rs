@@ -18,8 +18,12 @@ struct Cli {
 enum Commands {
     Add {
         url: String,
+
         #[arg(short, long, value_delimiter = ',')]
         tags: Vec<String>,
+
+        #[arg(long)]
+        title: String,
     },
 
     #[command(alias = "ls")]
@@ -62,8 +66,8 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Add { url, tags } => {
-            commands::add::execute(url, tags)?;
+        Commands::Add { url, tags, title } => {
+            commands::add::execute(url, tags, title)?;
         }
         Commands::List { all, archived, format } => {
             commands::list::execute(all, archived, format)?;

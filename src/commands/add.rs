@@ -9,7 +9,7 @@ use crate::{
     },
 };
 
-pub fn execute(url: String, tags: Vec<String>) -> Result<()> {
+pub fn execute(url: String, tags: Vec<String>, title_by_user: String) -> Result<()> {
     let conn = open_connection()?;
 
     let hash: String = blake3::hash(url.as_bytes())
@@ -26,7 +26,11 @@ pub fn execute(url: String, tags: Vec<String>) -> Result<()> {
     let (title, description, favicon_url, content_markdown) = match fetch_html(&url) {
         Ok(html) => {
             let meta = extract_metadata(&html).ok();
-            let title = meta.as_ref().and_then(|m| m.title.clone());
+            let title = if !title_by_user.is_empty() {
+                Some(title_by_user.clone())
+            } else {
+                meta.as_ref().and_then(|m| m.title.clone())
+            };
             let description = meta.as_ref().and_then(|m| m.description.clone());
             let favicon_url = meta.as_ref().and_then(|m| m.favicon_url.clone());
 
@@ -39,7 +43,12 @@ pub fn execute(url: String, tags: Vec<String>) -> Result<()> {
             eprintln!("Saving URL only...");
 
             let domain = extract_site(&url);
-            (domain.clone(), None, None, None)
+            let fallback_title = if !title_by_user.is_empty() {
+                title_by_user
+            } else {
+                domain.clone().unwrap_or_else(|| "Untitled".to_string())
+            };
+            (Some(fallback_title), None, None, None)
         }
     };
 
