@@ -1,8 +1,7 @@
 use anyhow::Result;
-use chrono::{DateTime, Local, Utc};
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table, presets};
 
-use crate::{db::models::Article, ui::icons::Icons};
+use crate::{db::models::Article, ui::{formatters::datetime_humanize, icons::Icons}};
 
 pub enum OutputFormat {
     Table,
@@ -29,11 +28,6 @@ pub fn render_ids(articles: &[Article]) -> Result<()> {
     }
 
     Ok(())
-}
-
-fn format_timestamp(dt: &DateTime<Utc>) -> String {
-    let local = dt.with_timezone(&Local);
-    local.format("%H:%M %d/%m").to_string()
 }
 
 pub fn render_table(articles: &[Article], all: bool, archived: bool) -> Result<()> {
@@ -78,7 +72,7 @@ pub fn render_table(articles: &[Article], all: bool, archived: bool) -> Result<(
             }),
             Cell::new(article.site.as_deref().unwrap_or("")),
             Cell::new(article.tags.join(", ")),
-            Cell::new(format_timestamp(&article.saved_at)),
+            Cell::new(datetime_humanize(article.saved_at)),
         ];
 
         if all || archived {

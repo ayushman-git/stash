@@ -7,7 +7,8 @@ edition = "2024"
 browser = { package = "open", version = "5" }
 anyhow = "1.0"
 blake3 = "1.5"
-chrono = { version = "0.4.42", features = ["serde"] }
+chrono = { version = "0.4.42", features = ["serde", "clock"] }
+chrono-humanize = "0.2"
 clap = { version = "4.5.49", features = ["derive"] }
 colored = "3.0.0"
 comfy-table = "7.2.1"
