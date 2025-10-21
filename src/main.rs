@@ -59,6 +59,9 @@ enum Commands {
 
         #[arg(short, long, default_missing_value = "1", num_args = 0..=1)]
         random: Option<i64>,
+
+        #[arg(long)]
+        keep_unread: bool,
     },
     Star {
         #[arg(value_delimiter = ',')]
@@ -108,8 +111,12 @@ fn main() -> Result<()> {
         Commands::Remove { ids, force } => {
             commands::remove::execute(&ids, force)?;
         }
-        Commands::Open { ids, random } => {
-            commands::open::execute(&ids, random)?;
+        Commands::Open {
+            ids,
+            random,
+            keep_unread,
+        } => {
+            commands::open::execute(&ids, random, keep_unread)?;
         }
         Commands::Star { ids } => {
             commands::star::execute(&ids)?;

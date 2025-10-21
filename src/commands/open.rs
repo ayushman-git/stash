@@ -8,7 +8,7 @@ use crate::{
     ui::list::{OutputFormat, render_articles},
 };
 
-pub fn execute(ids: &[i64], random: Option<i64>) -> Result<()> {
+pub fn execute(ids: &[i64], random: Option<i64>, keep_unread: bool) -> Result<()> {
     let conn = open_connection()?;
 
     let articles = match random {
@@ -27,7 +27,11 @@ pub fn execute(ids: &[i64], random: Option<i64>) -> Result<()> {
         return Ok(());
     }
 
-    let read_articles = mark_read_by_ids(&conn, &articles.iter().map(|a| a.id).collect::<Vec<i64>>())?;
+    let read_articles = if keep_unread {
+        articles
+    } else {
+        mark_read_by_ids(&conn, &articles.iter().map(|a| a.id).collect::<Vec<i64>>())?
+    };
 
     for article in &read_articles {
         browser::that(&article.url)?;
