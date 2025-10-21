@@ -103,6 +103,19 @@ pub fn list_articles(conn: &Connection, limit: usize, all: bool) -> Result<Vec<A
     Ok(articles)
 }
 
+pub fn list_archived_articles(conn: &Connection, limit: usize) -> Result<Vec<Article>> {
+    let query =
+        "SELECT * FROM articles WHERE archived = 1 ORDER BY starred DESC, saved_at DESC LIMIT ?1";
+
+    let mut stmt = conn.prepare(query)?;
+    let articles = stmt
+        .query_map(params![limit], row_to_article)?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .context("Failed to list archived articles")?;
+
+    Ok(articles)
+}
+
 pub fn archive_by_ids(conn: &Connection, ids: &[i64]) -> Result<usize> {
     if ids.is_empty() {
         return Ok(0);
