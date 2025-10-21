@@ -88,7 +88,7 @@ pub fn find_by_ids(conn: &Connection, ids: &[i64]) -> Result<Vec<Article>> {
     Ok(articles)
 }
 
-pub fn list_articles(conn: &Connection, limit: usize, all: bool) -> Result<Vec<Article>> {
+pub fn list_articles(conn: &Connection, limit: i64, all: bool) -> Result<Vec<Article>> {
     let query = if all {
         "SELECT * FROM articles
          ORDER BY starred DESC, saved_at DESC LIMIT ?1"
@@ -106,7 +106,7 @@ pub fn list_articles(conn: &Connection, limit: usize, all: bool) -> Result<Vec<A
     Ok(articles)
 }
 
-pub fn list_archived_articles(conn: &Connection, limit: usize) -> Result<Vec<Article>> {
+pub fn list_archived_articles(conn: &Connection, limit: i64) -> Result<Vec<Article>> {
     let query =
         "SELECT * FROM articles WHERE archived = 1 ORDER BY starred DESC, saved_at DESC LIMIT ?1";
 

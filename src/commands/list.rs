@@ -5,13 +5,13 @@ use crate::{
     ui,
 };
 
-pub fn execute(all: bool, archived: bool, format: String) -> Result<()> {
+pub fn execute(all: bool, archived: bool, format: String, limit: i64) -> Result<()> {
     let conn = open_connection()?;
 
     let articles = if archived {
-        db::queries::list_archived_articles(&conn, 10).context("Failed to query articles")?
+        db::queries::list_archived_articles(&conn, limit).context("Failed to query articles")?
     } else {
-        db::queries::list_articles(&conn, 10, all).context("Failed to query articles")?
+        db::queries::list_articles(&conn, limit, all).context("Failed to query articles")?
     };
 
     if articles.is_empty() {

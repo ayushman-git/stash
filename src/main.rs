@@ -37,6 +37,9 @@ enum Commands {
         #[arg(short = 'A', long)]
         archived: bool,
 
+        #[arg(short = 'n', default_value = "10")]
+        limit: i64,
+
         #[arg(short, long, default_value = "table")]
         format: String,
     },
@@ -81,8 +84,9 @@ fn main() -> Result<()> {
             all,
             archived,
             format,
+            limit,
         } => {
-            commands::list::execute(all, archived, format)?;
+            commands::list::execute(all, archived, format, limit)?;
         }
         Commands::Remove { ids, force } => {
             commands::remove::execute(&ids, force)?;
