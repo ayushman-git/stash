@@ -9,7 +9,12 @@ use crate::{
     },
 };
 
-pub fn execute(url: String, tags: Vec<String>, title_by_user: String) -> Result<()> {
+pub fn execute(
+    url: String,
+    tags: Vec<String>,
+    title_by_user: Option<String>,
+    no_fetch: bool,
+) -> Result<()> {
     let conn = open_connection()?;
 
     let hash: String = blake3::hash(url.as_bytes())
@@ -23,14 +28,16 @@ pub fn execute(url: String, tags: Vec<String>, title_by_user: String) -> Result<
         std::process::exit(3); // 3 for duplicate
     }
 
-    let (title, description, favicon_url, content_markdown) = match fetch_html(&url) {
-        Ok(html) => {
+    let html_opt = if no_fetch {
+        None
+    } else {
+        fetch_html(&url).ok()
+    };
+
+    let (title, description, favicon_url, content_markdown) = match html_opt {
+        Some(html) => {
             let meta = extract_metadata(&html).ok();
-            let title = if !title_by_user.is_empty() {
-                Some(title_by_user.clone())
-            } else {
-                meta.as_ref().and_then(|m| m.title.clone())
-            };
+            let title = title_by_user.or_else(|| meta.as_ref().and_then(|m| m.title.clone()));
             let description = meta.as_ref().and_then(|m| m.description.clone());
             let favicon_url = meta.as_ref().and_then(|m| m.favicon_url.clone());
 
@@ -38,17 +45,14 @@ pub fn execute(url: String, tags: Vec<String>, title_by_user: String) -> Result<
 
             (title, description, favicon_url, content_markdown)
         }
-        Err(e) => {
-            eprintln!("Warning: Failed to fetch content: {}", e);
+        None => {
             eprintln!("Saving URL only...");
 
             let domain = extract_site(&url);
-            let fallback_title = if !title_by_user.is_empty() {
-                title_by_user
-            } else {
-                domain.clone().unwrap_or_else(|| "Untitled".to_string())
-            };
-            (Some(fallback_title), None, None, None)
+            let fallback_title = title_by_user.or_else(|| {
+                domain.clone().map(|d| d).or(Some("Untitled".to_string()))
+            });
+            (fallback_title, None, None, None)
         }
     };
 

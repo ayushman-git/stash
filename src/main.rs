@@ -23,7 +23,10 @@ enum Commands {
         tags: Vec<String>,
 
         #[arg(long)]
-        title: String,
+        title: Option<String>,
+
+        #[arg(long)]
+        no_fetch: bool,
     },
 
     #[command(alias = "ls")]
@@ -59,17 +62,26 @@ enum Commands {
         #[arg(value_delimiter = ',')]
         ids: Vec<i64>,
     },
-    Pick
+    Pick,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Add { url, tags, title } => {
-            commands::add::execute(url, tags, title)?;
+        Commands::Add {
+            url,
+            tags,
+            title,
+            no_fetch,
+        } => {
+            commands::add::execute(url, tags, title, no_fetch)?;
         }
-        Commands::List { all, archived, format } => {
+        Commands::List {
+            all,
+            archived,
+            format,
+        } => {
             commands::list::execute(all, archived, format)?;
         }
         Commands::Remove { ids, force } => {
