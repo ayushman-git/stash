@@ -219,3 +219,48 @@ pub fn mark_read_by_ids(conn: &Connection, ids: &[i64]) -> Result<Vec<Article>> 
         Ok(Vec::new())
     }
 }
+
+pub fn set_read_by_ids(conn: &Connection, ids: &[i64], read: bool) -> Result<Vec<Article>> {
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+
+    let query = format!(
+        "UPDATE articles SET read = {} WHERE id IN ({})",
+        if read { 1 } else { 0 },
+        placeholders
+    );
+
+    let affected = conn
+        .execute(&query, params_from_iter(ids))
+        .context("Failed to update read status")?;
+
+    if affected > 0 {
+        find_by_ids(conn, ids)
+    } else {
+        Ok(Vec::new())
+    }
+}
+
+pub fn set_read_all(conn: &Connection, read: bool, include_archived: bool) -> Result<Vec<Article>> {
+    // First, get IDs of articles to update
+    let id_query = if include_archived {
+        "SELECT id FROM articles"
+    } else {
+        "SELECT id FROM articles WHERE archived = 0"
+    };
+
+    let mut stmt = conn.prepare(id_query)?;
+    let ids: Vec<i64> = stmt
+        .query_map([], |row| row.get(0))?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .context("Failed to fetch article IDs")?;
+
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    set_read_by_ids(conn, &ids, read)
+}

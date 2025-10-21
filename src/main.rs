@@ -68,6 +68,20 @@ enum Commands {
         #[arg(value_delimiter = ',')]
         ids: Vec<i64>,
     },
+    MarkRead {
+        #[arg(value_delimiter = ',')]
+        ids: Vec<i64>,
+
+        #[arg(short, long)]
+        all: bool,
+    },
+    MarkUnread {
+        #[arg(value_delimiter = ',')]
+        ids: Vec<i64>,
+
+        #[arg(short, long)]
+        all: bool,
+    },
     Pick,
 }
 
@@ -102,6 +116,12 @@ fn main() -> Result<()> {
         }
         Commands::Unstar { ids } => {
             commands::unstar::execute(&ids)?;
+        }
+        Commands::MarkRead { ids, all } => {
+            commands::mark_read::execute(&ids, all)?;
+        }
+        Commands::MarkUnread { ids, all } => {
+            commands::mark_unread::execute(&ids, all)?;
         }
         Commands::Pick => {
             commands::pick::execute()?;
