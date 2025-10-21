@@ -10,7 +10,12 @@ pub enum OutputFormat {
     Ids,
 }
 
-pub fn render_articles(articles: &[Article], format: OutputFormat, all: bool, archived: bool) -> Result<()> {
+pub fn render_articles(
+    articles: &[Article],
+    format: OutputFormat,
+    all: bool,
+    archived: bool,
+) -> Result<()> {
     match format {
         OutputFormat::Table => render_table(articles, all, archived),
         OutputFormat::Json => render_json(articles),
@@ -36,7 +41,7 @@ pub fn render_table(articles: &[Article], all: bool, archived: bool) -> Result<(
     table.load_preset(presets::UTF8_FULL);
     table.set_content_arrangement(ContentArrangement::Dynamic);
 
-    let mut headers = vec!["ID", "*", "Title", "Site", "Tags", "Saved"];
+    let mut headers = vec!["ID", "*", "Title", "Read", "Site", "Tags", "Saved"];
     if all || archived {
         headers.push("Archived");
     }
@@ -47,18 +52,19 @@ pub fn render_table(articles: &[Article], all: bool, archived: bool) -> Result<(
             Cell::new(article.id),
             Cell::new(if article.starred { "★" } else { "" }),
             Cell::new(article.title.as_deref().unwrap_or("<no title>")),
+            Cell::new(if article.read { "Read" } else { "" }),
             Cell::new(article.site.as_deref().unwrap_or("")),
             Cell::new(article.tags.join(", ")),
             Cell::new(format_timestamp(&article.saved_at)),
         ];
-        
+
         if all || archived {
             row.push(Cell::new(if article.archived { "x" } else { "" }));
         }
-        
+
         table.add_row(row);
     }
-    
+
     println!("{}", table);
     Ok(())
 }

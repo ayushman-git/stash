@@ -196,3 +196,26 @@ pub fn set_starred_by_ids(conn: &Connection, ids: &[i64], starred: bool) -> Resu
         Ok(Vec::new())
     }
 }
+
+pub fn mark_read_by_ids(conn: &Connection, ids: &[i64]) -> Result<Vec<Article>> {
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+
+    let query = format!(
+        "UPDATE articles SET read = 1 WHERE id IN ({})",
+        placeholders
+    );
+
+    let affected = conn
+        .execute(&query, params_from_iter(ids))
+        .context("Failed to mark articles as read")?;
+
+    if affected > 0 {
+        find_by_ids(conn, ids)
+    } else {
+        Ok(Vec::new())
+    }
+}

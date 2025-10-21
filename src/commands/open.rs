@@ -1,9 +1,12 @@
 use anyhow::Result;
 
-use crate::{db::{
-    open_connection,
-    queries::{find_by_ids, get_random_articles, list_articles},
-}, ui::list::{render_articles, OutputFormat}};
+use crate::{
+    db::{
+        open_connection,
+        queries::{find_by_ids, get_random_articles, list_articles, mark_read_by_ids},
+    },
+    ui::list::{OutputFormat, render_articles},
+};
 
 pub fn execute(ids: &[i64], random: Option<i64>) -> Result<()> {
     let conn = open_connection()?;
@@ -18,17 +21,19 @@ pub fn execute(ids: &[i64], random: Option<i64>) -> Result<()> {
             }
         }
     };
-   
+
     if articles.is_empty() {
         println!("No articles found. Add one with `stash add <url>`");
         return Ok(());
     }
 
-    for article in &articles {
+    let read_articles = mark_read_by_ids(&conn, &articles.iter().map(|a| a.id).collect::<Vec<i64>>())?;
+
+    for article in &read_articles {
         browser::that(&article.url)?;
     }
 
-    render_articles(&articles, OutputFormat::Table, false, false)?;
+    render_articles(&read_articles, OutputFormat::Table, false, false)?;
 
     Ok(())
 }
