@@ -29,31 +29,34 @@ pub fn row_to_article(row: &Row) -> rusqlite::Result<Article> {
     })
 }
 
-pub fn insert_article(conn: &Connection, article: NewArticle) -> Result<i64> {
+pub fn insert_article(conn: &Connection, article: NewArticle) -> Result<Article> {
     let now = Utc::now().timestamp();
     let tags_json = serde_json::to_string(&article.tags)?;
 
-    conn.execute(
-        "INSERT INTO articles (
+    let inserted_article = conn
+        .query_row(
+            "INSERT INTO articles (
             hash, url, canonical_url, title, site, description, 
             favicon_url, content_markdown, saved_at, tags
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-        params![
-            article.hash,
-            article.url,
-            article.canonical_url,
-            article.title,
-            article.site,
-            article.description,
-            article.favicon_url,
-            article.content_markdown,
-            now,
-            tags_json,
-        ],
-    )
-    .context("Failed to insert article")?;
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+        RETURNING *",
+            params![
+                article.hash,
+                article.url,
+                article.canonical_url,
+                article.title,
+                article.site,
+                article.description,
+                article.favicon_url,
+                article.content_markdown,
+                now,
+                tags_json,
+            ],
+            row_to_article,
+        )
+        .context("Failed to insert article")?;
 
-    Ok(conn.last_insert_rowid())
+    Ok(inserted_article)
 }
 
 pub fn find_by_hash(conn: &Connection, hash: &str) -> Result<Option<Article>> {

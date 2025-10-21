@@ -6,7 +6,7 @@ use crate::{
         content::convert_html_to_md,
         http::{extract_site, fetch_html},
         metadata::extract_metadata,
-    },
+    }, ui::list::{render_articles, OutputFormat},
 };
 
 pub fn execute(
@@ -68,10 +68,9 @@ pub fn execute(
         tags,
     };
 
-    let id = queries::insert_article(&conn, new_article)
+    let article = queries::insert_article(&conn, new_article)
         .context("Failed to save article to database")?;
 
-    println!("Article saved with ID: {}", id);
-
+    render_articles(&vec![article], OutputFormat::Table, false, false)?;
     Ok(())
 }
