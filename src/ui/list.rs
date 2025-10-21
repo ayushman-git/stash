@@ -43,7 +43,7 @@ pub fn render_table(articles: &[Article], all: bool, archived: bool) -> Result<(
 
     let mut headers = vec![
         "ID",
-        Icons::Star.glyph(),
+        "",
         "Title",
         "Read",
         "Site",
