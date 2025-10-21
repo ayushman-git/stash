@@ -56,6 +56,9 @@ enum Commands {
     Open {
         #[arg(value_delimiter = ',')]
         ids: Vec<i64>,
+
+        #[arg(short, long, default_missing_value = "1", num_args = 0..=1)]
+        random: Option<i64>,
     },
     Star {
         #[arg(value_delimiter = ',')]
@@ -91,8 +94,8 @@ fn main() -> Result<()> {
         Commands::Remove { ids, force } => {
             commands::remove::execute(&ids, force)?;
         }
-        Commands::Open { ids } => {
-            commands::open::execute(&ids)?;
+        Commands::Open { ids, random } => {
+            commands::open::execute(&ids, random)?;
         }
         Commands::Star { ids } => {
             commands::star::execute(&ids)?;

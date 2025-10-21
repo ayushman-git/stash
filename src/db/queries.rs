@@ -106,6 +106,23 @@ pub fn list_articles(conn: &Connection, limit: i64, all: bool) -> Result<Vec<Art
     Ok(articles)
 }
 
+pub fn get_random_articles(conn: &Connection, count: i64, all: bool) -> Result<Vec<Article>> {
+    let query = if all {
+        "SELECT * FROM articles ORDER BY RANDOM() LIMIT ?1"
+    } else {
+        "SELECT * FROM articles WHERE read = 0 AND archived = 0 
+         ORDER BY RANDOM() LIMIT ?1"
+    };
+
+    let mut stmt = conn.prepare(query)?;
+    let articles = stmt
+        .query_map(params![count], row_to_article)?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .context("Failed to fetch random articles")?;
+
+    Ok(articles)
+}
+
 pub fn list_archived_articles(conn: &Connection, limit: i64) -> Result<Vec<Article>> {
     let query =
         "SELECT * FROM articles WHERE archived = 1 ORDER BY starred DESC, saved_at DESC LIMIT ?1";
