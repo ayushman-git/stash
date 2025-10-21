@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use dialoguer::Input;
 
 use crate::{
     db::{models::NewArticle, open_connection, queries},
@@ -6,15 +7,43 @@ use crate::{
         content::convert_html_to_md,
         http::{extract_site, fetch_html},
         metadata::extract_metadata,
-    }, ui::list::{render_articles, OutputFormat},
+    },
+    ui::list::{OutputFormat, render_articles},
 };
 
 pub fn execute(
-    url: String,
+    url: Option<String>,
     tags: Vec<String>,
     title_by_user: Option<String>,
     no_fetch: bool,
 ) -> Result<()> {
+    let (url, tags) = match url {
+        Some(u) => (u, tags),
+        None => {
+            let url = Input::new()
+                .with_prompt("URL")
+                .interact_text()
+                .context("Failed to read URL input")?;
+
+            let tags_input: String = Input::new()
+                .with_prompt("Tags (comma-separated, optional)")
+                .allow_empty(true)
+                .interact_text()
+                .context("Failed to read the tags")?;
+
+            let tags = if tags_input.is_empty() {
+                Vec::new()
+            } else {
+                tags_input
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .collect()
+            };
+
+            (url, tags)
+        }
+    };
+
     let conn = open_connection()?;
 
     let hash: String = blake3::hash(url.as_bytes())
@@ -49,9 +78,8 @@ pub fn execute(
             eprintln!("Saving URL only...");
 
             let domain = extract_site(&url);
-            let fallback_title = title_by_user.or_else(|| {
-                domain.clone().map(|d| d).or(Some("Untitled".to_string()))
-            });
+            let fallback_title = title_by_user
+                .or_else(|| domain.clone().map(|d| d).or(Some("Untitled".to_string())));
             (fallback_title, None, None, None)
         }
     };

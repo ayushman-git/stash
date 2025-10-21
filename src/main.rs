@@ -17,7 +17,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Add {
-        url: String,
+        url: Option<String>,
 
         #[arg(short, long, value_delimiter = ',')]
         tags: Vec<String>,
