@@ -156,9 +156,9 @@ pub fn delete_by_ids(conn: &Connection, ids: &[i64]) -> Result<usize> {
     Ok(affected)
 }
 
-pub fn set_starred_by_ids(conn: &Connection, ids: &[i64], starred: bool) -> Result<usize> {
+pub fn set_starred_by_ids(conn: &Connection, ids: &[i64], starred: bool) -> Result<Vec<Article>> {
     if ids.is_empty() {
-        return Ok(0);
+        return Ok(Vec::new());
     }
 
     let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
@@ -173,5 +173,9 @@ pub fn set_starred_by_ids(conn: &Connection, ids: &[i64], starred: bool) -> Resu
         .execute(&query, params_from_iter(ids))
         .context("Failed to update starred status")?;
 
-    Ok(affected)
+    if affected > 0 {
+        find_by_ids(conn, ids)
+    } else {
+        Ok(Vec::new())
+    }
 }
