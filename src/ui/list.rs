@@ -62,6 +62,7 @@ pub fn render_table(articles: &[Article], all: bool, archived: bool) -> Result<(
     println!("{}", table);
     Ok(())
 }
+
 pub fn render_json(articles: &[Article]) -> Result<()> {
     let json = serde_json::to_string_pretty(articles)?;
     println!("{}", json);
