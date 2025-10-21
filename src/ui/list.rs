@@ -38,7 +38,7 @@ fn format_timestamp(dt: &DateTime<Utc>) -> String {
 
 pub fn render_table(articles: &[Article], all: bool, archived: bool) -> Result<()> {
     let mut table = Table::new();
-    table.load_preset(presets::UTF8_HORIZONTAL_ONLY);
+    table.load_preset(presets::NOTHING);
     table.set_content_arrangement(ContentArrangement::Dynamic);
 
     let mut headers = vec![
@@ -57,11 +57,11 @@ pub fn render_table(articles: &[Article], all: bool, archived: bool) -> Result<(
 
     for article in articles {
         let title_cell = if article.read {
-            Cell::new(article.title.as_deref().unwrap_or("<no title>")).fg(Color::DarkGrey) // Dim read articles
+            Cell::new(article.title.as_deref().unwrap_or("<no title>")).fg(Color::DarkGrey)
         } else {
             Cell::new(article.title.as_deref().unwrap_or("<no title>"))
                 .fg(Color::White)
-                .add_attribute(Attribute::Bold) // Bold unread articles
+                .add_attribute(Attribute::Bold)
         };
         let mut row = vec![
             Cell::new(article.id),
@@ -82,7 +82,7 @@ pub fn render_table(articles: &[Article], all: bool, archived: bool) -> Result<(
         ];
 
         if all || archived {
-            row.push(Cell::new(if article.archived { "x" } else { "" }));
+            row.push(Cell::new(if article.archived { Icons::Deleted.glyph() } else { "" }));
         }
 
         table.add_row(row);
