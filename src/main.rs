@@ -27,6 +27,9 @@ enum Commands {
 
         #[arg(long)]
         no_fetch: bool,
+
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        extra_args: Vec<String>,
     },
 
     #[command(alias = "ls")]
@@ -97,8 +100,9 @@ fn main() -> Result<()> {
             tags,
             title,
             no_fetch,
+            extra_args,
         } => {
-            commands::add::execute(url, tags, title, no_fetch)?;
+            commands::add::execute(url, tags, title, no_fetch, extra_args)?;
         }
         Commands::List {
             all,

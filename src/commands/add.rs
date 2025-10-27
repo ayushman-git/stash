@@ -16,8 +16,9 @@ pub fn execute(
     tags: Vec<String>,
     title_by_user: Option<String>,
     no_fetch: bool,
+    extra_tags: Vec<String>
 ) -> Result<()> {
-    let (url, tags) = match url {
+    let (url, mut tags) = match url {
         Some(u) => (u, tags),
         None => {
             let url = Input::new()
@@ -83,6 +84,13 @@ pub fn execute(
             (fallback_title, None, None, None)
         }
     };
+
+    tags.extend(
+        extra_tags
+            .iter()
+            .filter(|arg| arg.starts_with("+"))
+            .map(|arg| arg.trim_start_matches("+").to_string())
+    );
 
     let new_article = NewArticle {
         hash,
