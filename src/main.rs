@@ -58,6 +58,9 @@ enum Commands {
         #[arg(short, long)]
         reverse: bool,
 
+        #[arg(short = 'b', long)]
+        browser: bool,
+
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         extra_args: Vec<String>,
     },
@@ -139,6 +142,7 @@ fn main() -> Result<()> {
             tag,
             sort,
             reverse,
+            browser,
             extra_args,
         } => {
             // Support multiple tag formats:
@@ -161,7 +165,7 @@ fn main() -> Result<()> {
                 }
             }
             
-            commands::list::execute(all, archived, format, limit, starred, tags, sort, reverse)?;
+            commands::list::execute(all, archived, format, limit, starred, tags, sort, reverse, browser)?;
         }
         Commands::Remove { ids, force } => {
             commands::remove::execute(&ids, force)?;

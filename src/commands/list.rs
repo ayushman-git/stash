@@ -14,6 +14,7 @@ pub fn execute(
     tags: Vec<String>,
     sort: String,
     reverse: bool,
+    browser: bool,
 ) -> Result<()> {
     let conn = open_connection()?;
 
@@ -35,6 +36,12 @@ pub fn execute(
     if articles.is_empty() {
         println!("No articles found!");
         return Ok(());
+    }
+
+    // If browser flag is set, render in browser instead
+    if browser {
+        return crate::ui::browser::render_browser(&articles, all, archived)
+            .context("Failed to render articles in browser");
     }
 
     let output_format = match format.as_str() {
