@@ -104,6 +104,13 @@ enum Commands {
         all: bool,
     },
     Pick,
+    Tag {
+        id: i64,
+
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        tags: Vec<String>,
+    },
+    Tags,
 }
 
 fn main() -> Result<()> {
@@ -176,6 +183,12 @@ fn main() -> Result<()> {
         }
         Commands::Pick => {
             commands::pick::execute()?;
+        }
+        Commands::Tag { id, tags } => {
+            commands::tag::execute(&id, &tags)?;
+        }
+        Commands::Tags => {
+            commands::list_tags::execute()?;
         }
     }
     Ok(())

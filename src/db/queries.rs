@@ -346,3 +346,59 @@ pub fn set_read_all(conn: &Connection, read: bool, include_archived: bool) -> Re
 
     set_read_by_ids(conn, &ids, read)
 }
+
+pub fn get_article_by_id(conn: &Connection, id: i64) -> Result<Option<Article>> {
+    let mut stmt = conn.prepare("SELECT * FROM articles WHERE id = ?1")?;
+
+    let article = stmt
+        .query_row(params![id], row_to_article)
+        .optional()
+        .context("Failed to query article by ID")?;
+
+    Ok(article)
+}
+
+pub fn update_tags(conn: &Connection, id: i64, tags: Vec<String>) -> Result<Article> {
+    let tags_json = serde_json::to_string(&tags)?;
+
+    conn.execute(
+        "UPDATE articles SET tags = ?1 WHERE id = ?2",
+        params![tags_json, id],
+    )
+    .context("Failed to update article tags")?;
+
+    let article = get_article_by_id(conn, id)?
+        .context("Article not found after update")?;
+
+    Ok(article)
+}
+
+pub fn get_all_tags_with_counts(conn: &Connection) -> Result<Vec<(String, usize)>> {
+    use std::collections::HashMap;
+    
+    // Get all articles
+    let mut stmt = conn.prepare("SELECT tags FROM articles")?;
+    let tags_list = stmt
+        .query_map([], |row| {
+            let tags_json: String = row.get(0)?;
+            Ok(tags_json)
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .context("Failed to query tags")?;
+    
+    // Count occurrences of each tag
+    let mut tag_counts: HashMap<String, usize> = HashMap::new();
+    
+    for tags_json in tags_list {
+        let tags: Vec<String> = serde_json::from_str(&tags_json).unwrap_or_default();
+        for tag in tags {
+            *tag_counts.entry(tag).or_insert(0) += 1;
+        }
+    }
+    
+    // Convert to vector and sort alphabetically
+    let mut result: Vec<(String, usize)> = tag_counts.into_iter().collect();
+    result.sort_by(|a, b| a.0.cmp(&b.0));
+    
+    Ok(result)
+}

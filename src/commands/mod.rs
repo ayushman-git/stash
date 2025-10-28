@@ -7,3 +7,5 @@ pub mod unstar;
 pub mod pick;
 pub mod mark_read;
 pub mod mark_unread;
+pub mod tag;
+pub mod list_tags;
