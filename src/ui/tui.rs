@@ -100,6 +100,7 @@ fn build_article_list(siv: &mut Cursive, articles: Vec<Article>) {
     siv.add_global_callback('u', on_mark_unread);
     siv.add_global_callback('s', toggle_star);
     siv.add_global_callback('a', toggle_filter);
+    siv.add_global_callback('A', toggle_archive);
     siv.add_global_callback('j', move_down);
     siv.add_global_callback('k', move_up);
     siv.add_global_callback('R', refresh_list);
@@ -142,7 +143,7 @@ fn truncate(s: &str, max_len: usize) -> String {
 
 fn build_footer() -> TextView {
     TextView::new(
-        "  [o/Enter] Open  [r] Read  [u] Unread  [s] Toggle Star  [a] Toggle Filter  [R] Refresh  [q/Esc] Quit  "
+        "  [o/Enter] Open  [r] Read  [u] Unread  [s] Star  [A] Archive  [a] Toggle Filter  [R] Refresh  [q/Esc] Quit  "
     )
     .style(ColorStyle::new(
         Color::Dark(BaseColor::Black),
@@ -208,9 +209,36 @@ fn toggle_star(s: &mut Cursive) {
     }
 }
 
+fn toggle_archive(s: &mut Cursive) {
+    if let Some(article) = get_selected_article(s) {
+        let (conn, _) = s.user_data::<(Connection, Rc<RefCell<FilterState>>)>().unwrap();
+        
+        if article.archived {
+            // Unarchive and mark as unread
+            if let Err(e) = queries::unarchive_by_ids(conn, &[article.id]) {
+                show_error(s, &format!("Failed to unarchive: {}", e));
+            } else {
+                refresh_list(s);
+            }
+        } else {
+            // Archive
+            if let Err(e) = queries::archive_by_ids(conn, &[article.id]) {
+                show_error(s, &format!("Failed to archive: {}", e));
+            } else {
+                refresh_list(s);
+            }
+        }
+    }
+}
+
 fn toggle_filter(s: &mut Cursive) {
     let (_, filter_state) = s.user_data::<(Connection, Rc<RefCell<FilterState>>)>().unwrap();
-    filter_state.borrow_mut().show_all = !filter_state.borrow().show_all;
+    // Toggle the filter state
+    let new_show_all = {
+        let current = filter_state.borrow().show_all;
+        !current
+    };
+    filter_state.borrow_mut().show_all = new_show_all;
     refresh_list(s);
 }
 

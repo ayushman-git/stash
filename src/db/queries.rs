@@ -226,6 +226,27 @@ pub fn archive_by_ids(conn: &Connection, ids: &[i64]) -> Result<usize> {
     Ok(affected)
 }
 
+pub fn unarchive_by_ids(conn: &Connection, ids: &[i64]) -> Result<usize> {
+    if ids.is_empty() {
+        return Ok(0);
+    }
+
+    // Generate placeholders: "?, ?, ?"
+    let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+
+    let query = format!(
+        "UPDATE articles SET archived = 0, read = 0 WHERE id IN ({})",
+        placeholders
+    );
+
+    // Execute with dynamic parameter binding
+    let affected = conn
+        .execute(&query, params_from_iter(ids))
+        .context("Failed to unarchive articles")?;
+
+    Ok(affected)
+}
+
 pub fn delete_by_ids(conn: &Connection, ids: &[i64]) -> Result<usize> {
     if ids.is_empty() {
         return Ok(0);
