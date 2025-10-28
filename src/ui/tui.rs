@@ -1,8 +1,9 @@
 use anyhow::Result;
 use cursive::align::HAlign;
 use cursive::event::Key;
-use cursive::theme::{BaseColor, Color, ColorStyle};
+use cursive::theme::{Color, ColorStyle};
 use cursive::traits::*;
+use cursive::utils::markup::StyledString;
 use cursive::views::{Dialog, LinearLayout, NamedView, Panel, ScrollView, SelectView, TextView};
 use cursive::Cursive;
 use rusqlite::Connection;
@@ -25,11 +26,16 @@ struct FilterState {
 pub fn launch_tui(conn: Connection) -> Result<()> {
     let mut siv = cursive::default();
     
-    // Set up theme
+    // Set up modern theme with better colors
     let mut theme = siv.current_theme().clone();
-    theme.palette.set_color("background", Color::Dark(BaseColor::Black));
-    theme.palette.set_color("view", Color::Dark(BaseColor::Black));
-    theme.palette.set_color("primary", Color::Light(BaseColor::White));
+    theme.palette.set_color("background", Color::Rgb(15, 15, 20));  // Dark blue-black
+    theme.palette.set_color("view", Color::Rgb(15, 15, 20));
+    theme.palette.set_color("primary", Color::Rgb(220, 220, 230));  // Soft white
+    theme.palette.set_color("secondary", Color::Rgb(100, 100, 120));  // Dim gray
+    theme.palette.set_color("tertiary", Color::Rgb(60, 60, 75));  // Darker gray
+    theme.palette.set_color("highlight", Color::Rgb(70, 130, 180));  // Steel blue
+    theme.palette.set_color("highlight_inactive", Color::Rgb(50, 50, 65));
+    theme.shadow = false;  // Cleaner look without shadows
     siv.set_theme(theme);
     
     // Initialize filter state (default: show only unread)
@@ -88,6 +94,7 @@ fn build_article_list(siv: &mut Cursive, articles: Vec<Article>) {
     };
     
     let layout = LinearLayout::vertical()
+        .child(build_header())
         .child(Panel::new(select).title(title).with_name("panel"))
         .child(build_footer());
     
@@ -108,29 +115,65 @@ fn build_article_list(siv: &mut Cursive, articles: Vec<Article>) {
     siv.add_fullscreen_layer(layout);
 }
 
-fn format_article_line(article: &Article) -> String {
-    let id = format!("{:>3}", article.id);
-    let star = if article.starred { "★" } else { " " };
-    let status = if article.read { "✓" } else { "•" };
-    let title = article.title.as_deref().unwrap_or("<no title>");
-    let site = article.site.as_deref().unwrap_or("-");
-    let date = datetime_humanize(article.saved_at);
-    let tags = if article.tags.is_empty() {
-        String::new()
+fn format_article_line(article: &Article) -> StyledString {
+    let mut styled = StyledString::new();
+    
+    // ID column with subtle color
+    let id = format!("{:>4}  ", article.id);
+    styled.append_styled(id, ColorStyle::new(Color::Rgb(100, 100, 120), Color::Rgb(15, 15, 20)));
+    
+    // Star icon with golden color if starred, dim gray otherwise
+    let star = if article.starred { "★" } else { "☆" };
+    let star_color = if article.starred {
+        Color::Rgb(255, 200, 60)  // Golden
     } else {
-        format!(" [{}]", article.tags.join(", "))
+        Color::Rgb(60, 60, 75)  // Dim gray
+    };
+    styled.append_styled(format!("{}  ", star), ColorStyle::new(star_color, Color::Rgb(15, 15, 20)));
+    
+    // Read status icon with color
+    let status = if article.read { "✓" } else { "●" };
+    let status_color = if article.read {
+        Color::Rgb(100, 180, 100)  // Green
+    } else {
+        Color::Rgb(100, 180, 255)  // Cyan blue
+    };
+    styled.append_styled(format!("{}  ", status), ColorStyle::new(status_color, Color::Rgb(15, 15, 20)));
+    
+    // Main text color - dimmed for read articles, bright for unread
+    let text_color = if article.read {
+        Color::Rgb(120, 120, 135)  // Dimmed
+    } else {
+        Color::Rgb(220, 220, 230)  // Bright
     };
     
-    format!(
-        "{} {} {} | {:50} | {:20} | {:12}{}",
-        id,
-        star,
-        status,
-        truncate(title, 50),
-        truncate(site, 20),
-        date,
-        tags
-    )
+    // Title column
+    let title = article.title.as_deref().unwrap_or("<no title>");
+    let title_str = format!("{:62}", truncate(title, 60));
+    styled.append_styled(title_str, ColorStyle::new(text_color, Color::Rgb(15, 15, 20)));
+    
+    // Site column with slight emphasis
+    let site = article.site.as_deref().unwrap_or("-");
+    let site_color = if article.read {
+        Color::Rgb(100, 100, 120)
+    } else {
+        Color::Rgb(140, 180, 220)  // Light blue
+    };
+    let site_str = format!(" {:27}", truncate(site, 25));
+    styled.append_styled(site_str, ColorStyle::new(site_color, Color::Rgb(15, 15, 20)));
+    
+    // Date column
+    let date = datetime_humanize(article.saved_at);
+    let date_str = format!(" {:12}", date);
+    styled.append_styled(date_str, ColorStyle::new(Color::Rgb(140, 140, 150), Color::Rgb(15, 15, 20)));
+    
+    // Tags in accent color
+    if !article.tags.is_empty() {
+        let tags = format!("  [{}]", article.tags.join(", "));
+        styled.append_styled(tags, ColorStyle::new(Color::Rgb(180, 140, 200), Color::Rgb(15, 15, 20)));
+    }
+    
+    styled
 }
 
 fn truncate(s: &str, max_len: usize) -> String {
@@ -141,14 +184,68 @@ fn truncate(s: &str, max_len: usize) -> String {
     }
 }
 
+fn build_header() -> TextView {
+    let mut header = StyledString::new();
+    
+    // Column headers with subtle color
+    let header_color = Color::Rgb(140, 140, 160);
+    let bg_color = Color::Rgb(15, 15, 20);
+    
+    header.append_styled("  ID  ", ColorStyle::new(header_color, bg_color));
+    header.append_styled("   ", ColorStyle::new(header_color, bg_color));
+    header.append_styled("   ", ColorStyle::new(header_color, bg_color));
+    header.append_styled("TITLE", ColorStyle::new(header_color, bg_color));
+    header.append_styled(" ".repeat(58), ColorStyle::new(header_color, bg_color));
+    header.append_styled("SOURCE", ColorStyle::new(header_color, bg_color));
+    header.append_styled(" ".repeat(22), ColorStyle::new(header_color, bg_color));
+    header.append_styled("SAVED", ColorStyle::new(header_color, bg_color));
+    header.append_styled(" ".repeat(8), ColorStyle::new(header_color, bg_color));
+    header.append_styled("TAGS", ColorStyle::new(header_color, bg_color));
+    
+    TextView::new(header)
+}
+
 fn build_footer() -> TextView {
-    TextView::new(
-        "  [o/Enter] Open  [r] Read  [u] Unread  [s] Star  [A] Archive  [a] Toggle Filter  [R] Refresh  [q/Esc] Quit  "
-    )
-    .style(ColorStyle::new(
-        Color::Dark(BaseColor::Black),
-        Color::Light(BaseColor::Blue),
-    ))
+    let mut footer = StyledString::new();
+    
+    let key_color = Color::Rgb(100, 180, 255);  // Cyan for keys
+    let text_color = Color::Rgb(180, 180, 190);  // Light gray for text
+    let sep_color = Color::Rgb(60, 60, 75);  // Dim separator
+    let bg_color = Color::Rgb(25, 25, 35);  // Slightly lighter background
+    
+    footer.append_styled("  ", ColorStyle::new(text_color, bg_color));
+    
+    // Navigation group
+    footer.append_styled("o/Enter", ColorStyle::new(key_color, bg_color));
+    footer.append_styled(" Open  ", ColorStyle::new(text_color, bg_color));
+    footer.append_styled("│ ", ColorStyle::new(sep_color, bg_color));
+    
+    // Status group
+    footer.append_styled("r", ColorStyle::new(key_color, bg_color));
+    footer.append_styled(" Read  ", ColorStyle::new(text_color, bg_color));
+    footer.append_styled("u", ColorStyle::new(key_color, bg_color));
+    footer.append_styled(" Unread  ", ColorStyle::new(text_color, bg_color));
+    footer.append_styled("│ ", ColorStyle::new(sep_color, bg_color));
+    
+    // Actions group
+    footer.append_styled("s", ColorStyle::new(key_color, bg_color));
+    footer.append_styled(" Star  ", ColorStyle::new(text_color, bg_color));
+    footer.append_styled("A", ColorStyle::new(key_color, bg_color));
+    footer.append_styled(" Archive  ", ColorStyle::new(text_color, bg_color));
+    footer.append_styled("│ ", ColorStyle::new(sep_color, bg_color));
+    
+    // View controls
+    footer.append_styled("a", ColorStyle::new(key_color, bg_color));
+    footer.append_styled(" Filter  ", ColorStyle::new(text_color, bg_color));
+    footer.append_styled("R", ColorStyle::new(key_color, bg_color));
+    footer.append_styled(" Refresh  ", ColorStyle::new(text_color, bg_color));
+    footer.append_styled("│ ", ColorStyle::new(sep_color, bg_color));
+    
+    // Exit
+    footer.append_styled("q/Esc", ColorStyle::new(key_color, bg_color));
+    footer.append_styled(" Quit  ", ColorStyle::new(text_color, bg_color));
+    
+    TextView::new(footer)
 }
 
 fn on_open(s: &mut Cursive) {
