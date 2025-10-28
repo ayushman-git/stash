@@ -106,6 +106,63 @@ pub fn list_articles(conn: &Connection, limit: i64, all: bool) -> Result<Vec<Art
     Ok(articles)
 }
 
+pub fn list_articles_filtered(
+    conn: &Connection,
+    limit: i64,
+    all: bool,
+    archived: bool,
+    starred: bool,
+    tags: &[String],
+) -> Result<Vec<Article>> {
+    let mut conditions = Vec::new();
+    
+    if !all {
+        conditions.push("read = 0".to_string());
+        if !archived {
+            conditions.push("archived = 0".to_string());
+        }
+    }
+    
+    if archived {
+        conditions.push("archived = 1".to_string());
+    }
+    
+    if starred {
+        conditions.push("starred = 1".to_string());
+    }
+    
+    // Filter by tags - article must contain ALL specified tags
+    if !tags.is_empty() {
+        for tag in tags {
+            // Escape single quotes in tags to prevent SQL injection
+            let escaped_tag = tag.replace('\'', "''");
+            conditions.push(format!(
+                "EXISTS (SELECT 1 FROM json_each(tags) WHERE value = '{}')",
+                escaped_tag
+            ));
+        }
+    }
+    
+    let where_clause = if conditions.is_empty() {
+        String::new()
+    } else {
+        format!("WHERE {}", conditions.join(" AND "))
+    };
+    
+    let query = format!(
+        "SELECT * FROM articles {} ORDER BY starred DESC, saved_at DESC LIMIT ?1",
+        where_clause
+    );
+    
+    let mut stmt = conn.prepare(&query)?;
+    let articles = stmt
+        .query_map(params![limit], row_to_article)?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .context("Failed to list articles")?;
+    
+    Ok(articles)
+}
+
 pub fn get_random_articles(conn: &Connection, count: i64, all: bool) -> Result<Vec<Article>> {
     let query = if all {
         "SELECT * FROM articles ORDER BY RANDOM() LIMIT ?1"

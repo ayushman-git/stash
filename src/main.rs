@@ -45,6 +45,15 @@ enum Commands {
 
         #[arg(short, long, default_value = "table")]
         format: String,
+
+        #[arg(long)]
+        starred: bool,
+
+        #[arg(short = 'T', long, value_delimiter = ',')]
+        tag: Vec<String>,
+
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        extra_args: Vec<String>,
     },
 
     #[command(alias = "rm")]
@@ -109,8 +118,31 @@ fn main() -> Result<()> {
             archived,
             format,
             limit,
+            starred,
+            tag,
+            extra_args,
         } => {
-            commands::list::execute(all, archived, format, limit)?;
+            // Support multiple tag formats:
+            // 1. --tag rust,webdev (comma-separated)
+            // 2. --tag rust --tag webdev (multiple flags)
+            // 3. +rust +webdev (+ prefix positional args)
+            let mut tags: Vec<String> = tag
+                .iter()
+                .flat_map(|t| t.split(','))
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+            
+            // Parse +tag syntax from extra_args
+            for arg in extra_args {
+                if let Some(tag_name) = arg.strip_prefix('+') {
+                    if !tag_name.is_empty() {
+                        tags.push(tag_name.to_string());
+                    }
+                }
+            }
+            
+            commands::list::execute(all, archived, format, limit, starred, tags)?;
         }
         Commands::Remove { ids, force } => {
             commands::remove::execute(&ids, force)?;
