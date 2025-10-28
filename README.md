@@ -10,10 +10,10 @@ A Rust-powered article manager designed for speed (<50ms startup, <100ms queries
 - **Local-First** - SQLite storage, no cloud dependencies
 - **Readable Content** - Automatic extraction of article content as Markdown
 - **Smart Organization** - Tags, starring, read/unread states
-- **Keyboard-Driven** - Minimal typing with fuzzy picker (`pick` command)
+- **Keyboard-Driven** - Minimal typing with fuzzy picker and TUI mode
 - **URL Deduplication** - Automatic canonicalization and tracking param removal
 - **Offline Access** - Read articles without internet once saved
-- **Beautiful Output** - Colored tables with icons and human-friendly dates
+- **Beautiful Output** - TUI, colored tables with icons and human-friendly dates
 
 ## Installation
 
@@ -65,6 +65,7 @@ stash rm 1
 | `list` | `ls` | List articles with filters |
 | `open <id>` | `o` | Open article in browser (auto-marks as read) |
 | `pick` | - | Interactive fuzzy picker for articles |
+| `tui` | - | Launch Terminal UI for interactive browsing |
 | `remove <id>` | `rm` | Archive article (soft delete) |
 
 ### Article Management
@@ -154,6 +155,23 @@ stash edit 5
 # archived: false
 
 # After saving, shows git-style diff of changes
+```
+
+### TUI Command
+
+```bash
+# Launch interactive Terminal UI
+stash tui
+
+# Keyboard shortcuts:
+# j/k or ↑/↓     Navigate articles
+# o or Enter     Open article in browser
+# r              Mark as read
+# u              Mark as unread
+# s              Toggle star/favorite
+# a              Toggle filter (all/unread)
+# R              Refresh list
+# q or Esc       Quit
 ```
 
 ### Bulk Operations
@@ -390,7 +408,7 @@ MIT
 - [ ] Tag management (rename, merge, autocomplete)
 - [ ] Export/import (JSON, Markdown)
 - [ ] Git-based sync across machines
-- [ ] TUI mode for richer interaction
+- [x] TUI mode for richer interaction
 - [ ] Browser extensions for one-click saving
 
 ---

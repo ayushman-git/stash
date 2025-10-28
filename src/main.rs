@@ -118,6 +118,7 @@ enum Commands {
         tags: Vec<String>,
     },
     Tags,
+    Tui,
 }
 
 fn main() -> Result<()> {
@@ -200,6 +201,9 @@ fn main() -> Result<()> {
         }
         Commands::Tags => {
             commands::list_tags::execute()?;
+        }
+        Commands::Tui => {
+            commands::tui::execute()?;
         }
     }
     Ok(())
