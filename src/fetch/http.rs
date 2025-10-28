@@ -36,3 +36,58 @@ pub fn extract_site(url: &str) -> Option<String> {
 
     Some(host.to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_site_removes_www() {
+        assert_eq!(
+            extract_site("https://www.example.com/article"),
+            Some("example.com".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_site_keeps_subdomain() {
+        assert_eq!(
+            extract_site("https://api.github.com/repos"),
+            Some("api.github.com".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_site_handles_port() {
+        assert_eq!(
+            extract_site("http://localhost:8080/path"),
+            Some("localhost".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_site_handles_ip_address() {
+        assert_eq!(
+            extract_site("http://192.168.1.1/path"),
+            Some("192.168.1.1".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_site_returns_none_for_invalid_url() {
+        assert_eq!(extract_site("not-a-valid-url"), None);
+    }
+
+    #[test]
+    fn test_extract_site_handles_file_url() {
+        assert_eq!(extract_site("file:///home/user/file.html"), None);
+    }
+
+    #[test]
+    fn test_extract_site_basic_domain() {
+        assert_eq!(
+            extract_site("https://example.com"),
+            Some("example.com".to_string())
+        );
+    }
+}
