@@ -70,6 +70,10 @@ enum Commands {
         force: bool,
     },
 
+    Edit {
+        id: i64,
+    },
+
     #[command(alias = "o")]
     Open {
         #[arg(value_delimiter = ',')]
@@ -161,6 +165,9 @@ fn main() -> Result<()> {
         }
         Commands::Remove { ids, force } => {
             commands::remove::execute(&ids, force)?;
+        }
+        Commands::Edit { id } => {
+            commands::edit::execute(&id)?;
         }
         Commands::Open {
             ids,

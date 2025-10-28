@@ -402,3 +402,45 @@ pub fn get_all_tags_with_counts(conn: &Connection) -> Result<Vec<(String, usize)
     
     Ok(result)
 }
+
+pub fn update_article_metadata(
+    conn: &Connection,
+    id: i64,
+    title: Option<String>,
+    url: String,
+    note: Option<String>,
+    tags: Vec<String>,
+    starred: bool,
+    read: bool,
+    archived: bool,
+) -> Result<Article> {
+    let tags_json = serde_json::to_string(&tags)?;
+
+    conn.execute(
+        "UPDATE articles SET 
+            title = ?1, 
+            url = ?2, 
+            note = ?3, 
+            tags = ?4, 
+            starred = ?5, 
+            read = ?6, 
+            archived = ?7 
+         WHERE id = ?8",
+        params![
+            title,
+            url,
+            note,
+            tags_json,
+            if starred { 1 } else { 0 },
+            if read { 1 } else { 0 },
+            if archived { 1 } else { 0 },
+            id
+        ],
+    )
+    .context("Failed to update article metadata")?;
+
+    let article = get_article_by_id(conn, id)?
+        .context("Article not found after update")?;
+
+    Ok(article)
+}

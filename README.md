@@ -71,6 +71,7 @@ stash rm 1
 
 | Command | Description |
 |---------|-------------|
+| `edit <id>` | Edit article metadata in $EDITOR |
 | `star <id>` | Star important articles |
 | `unstar <id>` | Remove star |
 | `mark-read <id>` | Mark as read without opening |
@@ -135,6 +136,26 @@ stash open --random 5
 stash open 1 --keep-unread
 ```
 
+### Edit Command Examples
+
+```bash
+# Edit article metadata
+stash edit 5
+
+# Opens in $EDITOR with YAML format:
+# title: Article Title
+# url: https://example.com
+# note: Personal notes
+# tags:
+#   - rust
+#   - cli
+# starred: false
+# read: false
+# archived: false
+
+# After saving, shows git-style diff of changes
+```
+
 ### Bulk Operations
 
 ```bash
@@ -160,6 +181,7 @@ src/
 ├── main.rs           # CLI routing (clap)
 ├── commands/         # Command orchestration
 │   ├── add.rs
+│   ├── edit.rs
 │   ├── list.rs
 │   ├── open.rs
 │   ├── pick.rs
@@ -254,6 +276,7 @@ CREATE TABLE articles (
 
 ### Environment Variables
 
+- `EDITOR` / `VISUAL` - Text editor for `edit` command (auto-detects if unset)
 - `NO_COLOR` - Disable colored output
 - `BROWSER` - Override default browser for `open` command
 
