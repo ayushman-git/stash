@@ -113,6 +113,8 @@ pub fn list_articles_filtered(
     archived: bool,
     starred: bool,
     tags: &[String],
+    sort_field: &str,
+    reverse: bool,
 ) -> Result<Vec<Article>> {
     let mut conditions = Vec::new();
     
@@ -149,9 +151,32 @@ pub fn list_articles_filtered(
         format!("WHERE {}", conditions.join(" AND "))
     };
     
+    // Map sort field to database column and determine sort order
+    let sort_column = match sort_field {
+        "time" => "saved_at",
+        "title" => "title COLLATE NOCASE",  // Case-insensitive sort
+        "site" => "site COLLATE NOCASE",    // Case-insensitive sort
+        "read" => "read",
+        "star" => "starred",
+        _ => "saved_at", // default fallback
+    };
+    
+    // For text fields (title, site), default to ASC (A-Z)
+    // For other fields (time, read, star), default to DESC (newest/true first)
+    let default_order = match sort_field {
+        "title" | "site" => "ASC",
+        _ => "DESC",
+    };
+    
+    let sort_order = if reverse {
+        if default_order == "ASC" { "DESC" } else { "ASC" }
+    } else {
+        default_order
+    };
+    
     let query = format!(
-        "SELECT * FROM articles {} ORDER BY starred DESC, saved_at DESC LIMIT ?1",
-        where_clause
+        "SELECT * FROM articles {} ORDER BY {} {} LIMIT ?1",
+        where_clause, sort_column, sort_order
     );
     
     let mut stmt = conn.prepare(&query)?;

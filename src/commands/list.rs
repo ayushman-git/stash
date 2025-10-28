@@ -5,11 +5,32 @@ use crate::{
     ui,
 };
 
-pub fn execute(all: bool, archived: bool, format: String, limit: i64, starred: bool, tags: Vec<String>) -> Result<()> {
+pub fn execute(
+    all: bool,
+    archived: bool,
+    format: String,
+    limit: i64,
+    starred: bool,
+    tags: Vec<String>,
+    sort: String,
+    reverse: bool,
+) -> Result<()> {
     let conn = open_connection()?;
 
-    let articles = db::queries::list_articles_filtered(&conn, limit, all, archived, starred, &tags)
-        .context("Failed to query articles")?;
+    // Validate sort field
+    let valid_sorts = ["time", "title", "site", "read", "star"];
+    if !valid_sorts.contains(&sort.as_str()) {
+        bail!(
+            "Invalid sort field '{}'. Use: {}",
+            sort,
+            valid_sorts.join(", ")
+        );
+    }
+
+    let articles = db::queries::list_articles_filtered(
+        &conn, limit, all, archived, starred, &tags, &sort, reverse
+    )
+    .context("Failed to query articles")?;
 
     if articles.is_empty() {
         println!("No articles found!");
