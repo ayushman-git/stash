@@ -1,6 +1,9 @@
 use comfy_table::Color;
 use std::time::Duration;
 
+// Import cursive Color for TUI
+use cursive::theme::Color as CursiveColor;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Theme {
     Dark,
@@ -56,6 +59,56 @@ impl Theme {
         match self {
             Theme::Dark => Color::DarkRed,
             Theme::Light => Color::Red,
+        }
+    }
+
+    // TUI-specific colors (using cursive's Color type)
+    
+    /// Get the background color for TUI
+    pub fn tui_background(&self) -> CursiveColor {
+        match self {
+            Theme::Dark => CursiveColor::Rgb(15, 15, 20),      // Dark blue-black
+            Theme::Light => CursiveColor::TerminalDefault,     // Use terminal default
+        }
+    }
+
+    /// Get the primary text color for TUI
+    pub fn tui_primary(&self) -> CursiveColor {
+        match self {
+            Theme::Dark => CursiveColor::Rgb(220, 220, 230),   // Soft white
+            Theme::Light => CursiveColor::TerminalDefault,     // Use terminal default
+        }
+    }
+
+    /// Get the secondary text color for TUI
+    pub fn tui_secondary(&self) -> CursiveColor {
+        match self {
+            Theme::Dark => CursiveColor::Rgb(100, 100, 120),   // Dim gray
+            Theme::Light => CursiveColor::TerminalDefault,     // Use terminal default
+        }
+    }
+
+    /// Get the tertiary text color for TUI
+    pub fn tui_tertiary(&self) -> CursiveColor {
+        match self {
+            Theme::Dark => CursiveColor::Rgb(60, 60, 75),      // Darker gray
+            Theme::Light => CursiveColor::TerminalDefault,     // Use terminal default
+        }
+    }
+
+    /// Get the highlight color for TUI (selected row)
+    pub fn tui_highlight(&self) -> CursiveColor {
+        match self {
+            Theme::Dark => CursiveColor::Rgb(70, 130, 180),    // Steel blue
+            Theme::Light => CursiveColor::Rgb(200, 220, 240),  // Light blue highlight
+        }
+    }
+
+    /// Get the highlight inactive color for TUI
+    pub fn tui_highlight_inactive(&self) -> CursiveColor {
+        match self {
+            Theme::Dark => CursiveColor::Rgb(50, 50, 65),
+            Theme::Light => CursiveColor::Rgb(220, 220, 220),  // Light gray
         }
     }
 }
