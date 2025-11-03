@@ -61,7 +61,10 @@ pub fn execute(id: &i64, operations: &[String]) -> Result<()> {
     }
     
     // Parse operations and build new tag set
-    let mut tags: HashSet<String> = article.tags.iter().cloned().collect();
+    // Normalize all existing tags to lowercase for consistency
+    let mut tags: HashSet<String> = article.tags.iter()
+        .map(|t| t.to_lowercase())
+        .collect();
     let mut has_operations = false;
     
     for op in operations {
