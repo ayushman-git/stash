@@ -7,10 +7,20 @@ use which::which;
 use crate::db::{open_connection, queries::list_articles};
 
 pub fn execute() -> Result<()> {
-    let fzf_path = which("fzf")
-        .context("fzf not found in PATH. Install with: brew install fzf")?;
-    
     let conn = open_connection()?;
+    
+    // Check if fzf is available, if not fall back to TUI
+    match which("fzf") {
+        Ok(fzf_path) => execute_with_fzf(fzf_path, conn),
+        Err(_) => {
+            // Fall back to TUI when fzf is not installed
+            crate::ui::tui::launch_tui(conn).context("Failed to launch TUI")?;
+            Ok(())
+        }
+    }
+}
+
+fn execute_with_fzf(fzf_path: std::path::PathBuf, conn: rusqlite::Connection) -> Result<()> {
     let articles = list_articles(&conn, 100, false)
         .context("Failed to query articles")?;
 
