@@ -96,11 +96,19 @@ impl Theme {
         }
     }
 
-    /// Get the highlight color for TUI (selected row)
+    /// Get the highlight color for TUI (selected row background)
     pub fn tui_highlight(&self) -> CursiveColor {
         match self {
             Theme::Dark => CursiveColor::Rgb(70, 130, 180),    // Steel blue
-            Theme::Light => CursiveColor::Rgb(200, 220, 240),  // Light blue highlight
+            Theme::Light => CursiveColor::Rgb(180, 200, 230),  // Medium blue highlight
+        }
+    }
+
+    /// Get the highlight text color for TUI (selected row text)
+    pub fn tui_highlight_text(&self) -> CursiveColor {
+        match self {
+            Theme::Dark => CursiveColor::Rgb(255, 255, 255),   // White text
+            Theme::Light => CursiveColor::Rgb(0, 0, 0),        // Black text
         }
     }
 

@@ -37,6 +37,7 @@ pub fn launch_tui(conn: Connection) -> Result<()> {
     theme.palette.set_color("secondary", detected_theme.tui_secondary());
     theme.palette.set_color("tertiary", detected_theme.tui_tertiary());
     theme.palette.set_color("highlight", detected_theme.tui_highlight());
+    theme.palette.set_color("highlight_text", detected_theme.tui_highlight_text());
     theme.palette.set_color("highlight_inactive", detected_theme.tui_highlight_inactive());
     theme.shadow = false;  // Cleaner look without shadows
     siv.set_theme(theme);
