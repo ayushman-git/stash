@@ -3,7 +3,7 @@ use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table, presets};
 
 use crate::{
     db::models::Article,
-    ui::{formatters::datetime_humanize, icons::Icons},
+    ui::{formatters::datetime_humanize, icons::Icons, theme::Theme},
 };
 
 pub enum OutputFormat {
@@ -33,55 +33,59 @@ pub fn render_ids(articles: &[Article]) -> Result<()> {
     Ok(())
 }
 
-fn get_row_style(article: &Article) -> (Color, bool, Option<Color>) {
+fn get_row_style(article: &Article, theme: &Theme) -> (Color, bool, Option<Color>) {
     if article.archived {
-        (Color::DarkGrey, false, None)
+        (theme.read_color(), false, None)
     } else if !article.read && article.starred {
-        (Color::Yellow, true, None)
+        (theme.starred_color(), true, None)
     } else if !article.read {
-        (Color::White, false, None)
+        (theme.unread_color(), false, None)
     } else {
-        (Color::DarkGrey, false, None)
+        (theme.read_color(), false, None)
     }
 }
 
 pub fn render_table(articles: &[Article], all: bool, archived: bool) -> Result<()> {
+    // Detect terminal theme
+    let theme = Theme::detect();
+    let header_color = theme.header_color();
+    
     let mut table = Table::new();
     table.load_preset(presets::NOTHING);
     table.set_content_arrangement(ContentArrangement::Dynamic);
 
     let mut headers = vec![
         Cell::new("ID")
-            .fg(Color::Cyan)
+            .fg(header_color)
             .add_attribute(Attribute::Bold),
-        Cell::new("").fg(Color::Cyan).add_attribute(Attribute::Bold),
+        Cell::new("").fg(header_color).add_attribute(Attribute::Bold),
         Cell::new("Title")
-            .fg(Color::Cyan)
+            .fg(header_color)
             .add_attribute(Attribute::Bold),
         Cell::new("Read")
-            .fg(Color::Cyan)
+            .fg(header_color)
             .add_attribute(Attribute::Bold),
         Cell::new("Site")
-            .fg(Color::Cyan)
+            .fg(header_color)
             .add_attribute(Attribute::Bold),
         Cell::new("Tags")
-            .fg(Color::Cyan)
+            .fg(header_color)
             .add_attribute(Attribute::Bold),
         Cell::new("Saved")
-            .fg(Color::Cyan)
+            .fg(header_color)
             .add_attribute(Attribute::Bold),
     ];
     if all || archived {
         headers.push(
             Cell::new("Archived")
-                .fg(Color::Cyan)
+                .fg(header_color)
                 .add_attribute(Attribute::Bold),
         );
     }
     table.set_header(headers);
 
     for article in articles {
-        let (color, _bold, _bg) = get_row_style(&article);
+        let (color, _bold, _bg) = get_row_style(&article, &theme);
 
         let mut row = vec![
             Cell::new(article.id).fg(color),
@@ -111,7 +115,7 @@ pub fn render_table(articles: &[Article], all: bool, archived: bool) -> Result<(
                 } else {
                     ""
                 })
-                .fg(Color::DarkRed),
+                .fg(theme.archived_color()),
             );
         }
 
