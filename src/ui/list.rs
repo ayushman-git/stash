@@ -71,6 +71,9 @@ pub fn render_table(articles: &[Article], all: bool, archived: bool) -> Result<(
         Cell::new("Tags")
             .fg(header_color)
             .add_attribute(Attribute::Bold),
+        Cell::new("Note")
+            .fg(header_color)
+            .add_attribute(Attribute::Bold),
         Cell::new("Saved")
             .fg(header_color)
             .add_attribute(Attribute::Bold),
@@ -86,6 +89,15 @@ pub fn render_table(articles: &[Article], all: bool, archived: bool) -> Result<(
 
     for article in articles {
         let (color, _bold, _bg) = get_row_style(&article, &theme);
+
+        // Truncate note for display
+        let note_display = article.note.as_ref().map(|n| {
+            if n.len() > 30 {
+                format!("{}...", &n[..30].replace('\n', " "))
+            } else {
+                n.replace('\n', " ")
+            }
+        }).unwrap_or_default();
 
         let mut row = vec![
             Cell::new(article.id).fg(color),
@@ -105,6 +117,12 @@ pub fn render_table(articles: &[Article], all: bool, archived: bool) -> Result<(
             .fg(color),
             Cell::new(article.site.as_deref().unwrap_or("")).fg(color),
             Cell::new(article.tags.join(", ")).fg(color),
+            Cell::new(if article.note.is_some() {
+                format!("{} {}", Icons::Note.glyph(), note_display)
+            } else {
+                String::new()
+            })
+            .fg(color),
             Cell::new(datetime_humanize(article.saved_at)).fg(color),
         ];
 

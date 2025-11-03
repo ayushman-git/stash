@@ -6,6 +6,7 @@ use std::fs;
 use std::io::Write;
 use std::process::Command;
 
+use crate::config;
 use crate::db::{open_connection, queries};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -59,18 +60,23 @@ pub fn execute(id: &i64) -> Result<()> {
 
     let temp_path = temp_file.path().to_path_buf();
 
-    // Get editor from environment
-    let editor = std::env::var("EDITOR")
-        .or_else(|_| std::env::var("VISUAL"))
-        .unwrap_or_else(|_| {
-            // Try to find a suitable editor
-            for ed in &["vim", "vi", "nano", "emacs"] {
-                if which::which(ed).is_ok() {
-                    return ed.to_string();
+    // Get editor from config, fallback to environment variables
+    let config = config::load_config()?;
+    let editor = if config.defaults.editor != "default" {
+        config.defaults.editor
+    } else {
+        std::env::var("EDITOR")
+            .or_else(|_| std::env::var("VISUAL"))
+            .unwrap_or_else(|_| {
+                // Try to find a suitable editor
+                for ed in &["vim", "vi", "nano", "emacs"] {
+                    if which::which(ed).is_ok() {
+                        return ed.to_string();
+                    }
                 }
-            }
-            "vi".to_string()
-        });
+                "vi".to_string()
+            })
+    };
 
     // Open editor
     let status = Command::new(&editor)

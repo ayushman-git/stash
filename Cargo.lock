@@ -2888,6 +2888,7 @@ dependencies = [
  "tempfile",
  "termbg",
  "tiny_http",
+ "toml",
  "url",
  "which",
 ]

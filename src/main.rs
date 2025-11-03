@@ -1,5 +1,7 @@
 mod commands;
+mod config;
 mod db;
+mod export;
 mod fetch;
 mod ui;
 
@@ -12,6 +14,20 @@ use clap::{Parser, Subcommand};
 struct Cli {
     #[command(subcommand)]
     command: Commands,
+}
+
+#[derive(Subcommand)]
+enum ConfigAction {
+    Set {
+        key: String,
+        value: String,
+    },
+    Get {
+        key: String,
+    },
+    List,
+    Reset,
+    Path,
 }
 
 #[derive(Subcommand)]
@@ -73,8 +89,57 @@ enum Commands {
         force: bool,
     },
 
+    Restore {
+        ids: Vec<i64>,
+
+        #[arg(short, long)]
+        all: bool,
+    },
+
     Edit {
         id: i64,
+    },
+
+    Note {
+        id: i64,
+
+        #[arg(value_name = "TEXT")]
+        text: Option<String>,
+
+        #[arg(short, long)]
+        append: bool,
+
+        #[arg(short, long)]
+        clear: bool,
+    },
+
+    Export {
+        #[arg(short, long, default_value = "json")]
+        format: String,
+
+        #[arg(short, long)]
+        output: Option<String>,
+
+        #[arg(long, value_delimiter = ',')]
+        ids: Option<Vec<i64>>,
+
+        #[arg(short, long, value_delimiter = ',')]
+        tags: Option<Vec<String>>,
+    },
+
+    Import {
+        path: String,
+
+        #[arg(short, long)]
+        merge: bool,
+
+        #[arg(long)]
+        dry_run: bool,
+    },
+
+    Config {
+        #[command(subcommand)]
+        action: ConfigAction,
     },
 
     #[command(alias = "o")]
@@ -118,6 +183,30 @@ enum Commands {
         tags: Vec<String>,
     },
     Tags,
+    TagRename {
+        old_tag: String,
+        new_tag: String,
+    },
+    TagMerge {
+        #[arg(value_delimiter = ',', required = true)]
+        tags: Vec<String>,
+
+        #[arg(long)]
+        into: String,
+    },
+    TagDelete {
+        tag: String,
+
+        #[arg(short, long)]
+        force: bool,
+    },
+    TagStats {
+        #[arg(short, long, default_value = "alpha")]
+        sort: String,
+
+        #[arg(short, long, default_value = "1")]
+        min_count: i64,
+    },
     Tui,
     Search {
         query: String,
@@ -198,8 +287,39 @@ fn main() -> Result<()> {
         Commands::Remove { ids, force } => {
             commands::remove::execute(&ids, force)?;
         }
+        Commands::Restore { ids, all } => {
+            commands::restore::execute(&ids, all)?;
+        }
         Commands::Edit { id } => {
             commands::edit::execute(&id)?;
+        }
+        Commands::Note { id, text, append, clear } => {
+            commands::note::execute(&id, text, append, clear)?;
+        }
+        Commands::Export { format, output, ids, tags } => {
+            commands::export::execute(format, output, ids, tags)?;
+        }
+        Commands::Import { path, merge, dry_run } => {
+            commands::import::execute(path, merge, dry_run)?;
+        }
+        Commands::Config { action } => {
+            match action {
+                ConfigAction::Set { key, value } => {
+                    commands::config::execute_set(key, value)?;
+                }
+                ConfigAction::Get { key } => {
+                    commands::config::execute_get(key)?;
+                }
+                ConfigAction::List => {
+                    commands::config::execute_list()?;
+                }
+                ConfigAction::Reset => {
+                    commands::config::execute_reset()?;
+                }
+                ConfigAction::Path => {
+                    commands::config::execute_path()?;
+                }
+            }
         }
         Commands::Open {
             ids,
@@ -228,6 +348,18 @@ fn main() -> Result<()> {
         }
         Commands::Tags => {
             commands::list_tags::execute()?;
+        }
+        Commands::TagRename { old_tag, new_tag } => {
+            commands::tag_rename::execute(old_tag, new_tag)?;
+        }
+        Commands::TagMerge { tags, into } => {
+            commands::tag_merge::execute(tags, into)?;
+        }
+        Commands::TagDelete { tag, force } => {
+            commands::tag_delete::execute(tag, force)?;
+        }
+        Commands::TagStats { sort, min_count } => {
+            commands::tag_stats::execute(sort, min_count)?;
         }
         Commands::Tui => {
             commands::tui::execute()?;

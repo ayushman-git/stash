@@ -136,9 +136,13 @@ fn format_article_line(article: &Article, _theme: Theme) -> StyledString {
     let status = if article.read { "✓" } else { "●" };
     line.push_str(&format!("{}  ", status));
     
+    // Note indicator
+    let note_icon = if article.note.is_some() { "📝" } else { " " };
+    line.push_str(&format!("{}  ", note_icon));
+    
     // Title column
     let title = article.title.as_deref().unwrap_or("<no title>");
-    line.push_str(&format!("{:62}", truncate(title, 60)));
+    line.push_str(&format!("{:58}", truncate(title, 56)));
     
     // Site column
     let site = article.site.as_deref().unwrap_or("-");
@@ -154,6 +158,17 @@ fn format_article_line(article: &Article, _theme: Theme) -> StyledString {
         line.push_str(&tags);
     }
     
+    // Note preview (if exists and space permits)
+    if let Some(note) = &article.note {
+        let note_preview = note.replace('\n', " ");
+        let preview = if note_preview.len() > 40 {
+            format!("  💬 {}...", &note_preview[..37])
+        } else {
+            format!("  💬 {}", note_preview)
+        };
+        line.push_str(&preview);
+    }
+    
     StyledString::plain(line)
 }
 
@@ -167,8 +182,8 @@ fn truncate(s: &str, max_len: usize) -> String {
 
 fn build_header(_theme: Theme) -> TextView {
     let header = format!(
-        "  ID     TITLE{}SOURCE{}SAVED{}TAGS",
-        " ".repeat(58),
+        "  ID       TITLE{}SOURCE{}SAVED{}TAGS/NOTES",
+        " ".repeat(54),
         " ".repeat(22),
         " ".repeat(8)
     );
