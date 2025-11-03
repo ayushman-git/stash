@@ -452,3 +452,93 @@ pub fn update_article_metadata(
 
     Ok(article)
 }
+
+pub fn search_articles(
+    conn: &Connection,
+    query: &str,
+    limit: i64,
+    all: bool,
+    archived: bool,
+    starred: bool,
+    tags: &[String],
+) -> Result<Vec<Article>> {
+    let mut conditions = Vec::new();
+    
+    // Build filter conditions similar to list_articles_filtered
+    if !all {
+        conditions.push("articles.read = 0".to_string());
+        if !archived {
+            conditions.push("articles.archived = 0".to_string());
+        }
+    }
+    
+    if archived {
+        conditions.push("articles.archived = 1".to_string());
+    }
+    
+    if starred {
+        conditions.push("articles.starred = 1".to_string());
+    }
+    
+    // Filter by tags - article must contain ALL specified tags
+    if !tags.is_empty() {
+        for tag in tags {
+            // Escape single quotes in tags to prevent SQL injection
+            let escaped_tag = tag.replace('\'', "''");
+            conditions.push(format!(
+                "EXISTS (SELECT 1 FROM json_each(articles.tags) WHERE value = '{}')",
+                escaped_tag
+            ));
+        }
+    }
+    
+    let where_clause = if conditions.is_empty() {
+        String::new()
+    } else {
+        format!("AND {}", conditions.join(" AND "))
+    };
+    
+    // Escape FTS5 special characters by wrapping each word in quotes
+    // FTS5 special characters: - " ( ) * AND OR NOT
+    // If the query contains these, wrap the entire query in quotes for phrase search
+    let fts_query = if query.contains(&['-', '(', ')', '*', '.', ':', '/', '@'][..]) {
+        // For queries with special chars, use phrase search
+        format!("\"{}\"", query.replace('"', "\"\""))
+    } else {
+        // For simple queries, allow FTS5 to parse naturally
+        query.to_string()
+    };
+    
+    // Use FTS5 for full-text search across title, description, content_markdown, and tags
+    // We use LEFT JOIN to also capture URL matches that might not match FTS
+    // The query is ranked by relevance using bm25() function (lower is better)
+    // URL matches get a boost by having a very low (negative) score
+    let url_pattern = format!("%{}%", query);
+    
+    let sql = format!(
+        "SELECT articles.id, articles.hash, articles.url, articles.canonical_url, 
+                articles.title, articles.site, articles.description, articles.favicon_url,
+                articles.content_markdown, articles.saved_at, articles.last_opened_at,
+                articles.read, articles.archived, articles.starred, articles.note, articles.tags,
+         CASE 
+           WHEN articles.url LIKE ?3 THEN -100.0
+           WHEN articles_fts.rowid IS NOT NULL THEN bm25(articles_fts)
+           ELSE 100.0
+         END as relevance
+         FROM articles
+         LEFT JOIN articles_fts ON articles.id = articles_fts.rowid AND articles_fts MATCH ?1
+         WHERE (articles_fts.rowid IS NOT NULL OR articles.url LIKE ?3)
+         {}
+         ORDER BY relevance ASC
+         LIMIT ?2",
+        where_clause
+    );
+    
+    let mut stmt = conn.prepare(&sql)?;
+    let articles = stmt
+        .query_map(params![fts_query, limit, url_pattern], row_to_article)?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .context("Failed to search articles")?;
+    
+    Ok(articles)
+}

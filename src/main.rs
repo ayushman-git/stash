@@ -119,6 +119,33 @@ enum Commands {
     },
     Tags,
     Tui,
+    Search {
+        query: String,
+
+        #[arg(short, long)]
+        all: bool,
+
+        #[arg(short = 'A', long)]
+        archived: bool,
+
+        #[arg(short = 'n', long, default_value = "20")]
+        limit: i64,
+
+        #[arg(short = 'f', long, default_value = "table")]
+        format: String,
+
+        #[arg(long)]
+        starred: bool,
+
+        #[arg(short = 'T', long, value_delimiter = ',')]
+        tag: Vec<String>,
+
+        #[arg(short = 'b', long)]
+        browser: bool,
+
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        extra_args: Vec<String>,
+    },
 }
 
 fn main() -> Result<()> {
@@ -204,6 +231,36 @@ fn main() -> Result<()> {
         }
         Commands::Tui => {
             commands::tui::execute()?;
+        }
+        Commands::Search {
+            query,
+            all,
+            archived,
+            format,
+            limit,
+            starred,
+            tag,
+            browser,
+            extra_args,
+        } => {
+            // Support multiple tag formats (same as list command)
+            let mut tags: Vec<String> = tag
+                .iter()
+                .flat_map(|t| t.split(','))
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+            
+            // Parse +tag syntax from extra_args
+            for arg in extra_args {
+                if let Some(tag_name) = arg.strip_prefix('+') {
+                    if !tag_name.is_empty() {
+                        tags.push(tag_name.to_string());
+                    }
+                }
+            }
+            
+            commands::search::execute(query, all, archived, format, limit, starred, tags, browser)?;
         }
     }
     Ok(())

@@ -11,3 +11,4 @@ pub mod mark_unread;
 pub mod tag;
 pub mod list_tags;
 pub mod tui;
+pub mod search;
