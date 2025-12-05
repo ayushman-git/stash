@@ -3,6 +3,12 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension, Row, params, params_from_iter};
 
+/// Generate SQL placeholders for parameterized queries.
+/// Returns a string like "?, ?, ?" for 3 items.
+fn placeholders(count: usize) -> String {
+    std::iter::repeat("?").take(count).collect::<Vec<_>>().join(", ")
+}
+
 pub fn row_to_article(row: &Row) -> rusqlite::Result<Article> {
     let saved_at_unix: i64 = row.get("saved_at")?;
     let last_opened_unix: Option<i64> = row.get("last_opened_at")?;
@@ -75,9 +81,7 @@ pub fn find_by_ids(conn: &Connection, ids: &[i64]) -> Result<Vec<Article>> {
         return Ok(Vec::new());
     }
 
-    let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
-
-    let query = format!("SELECT * FROM articles WHERE id IN ({})", placeholders);
+    let query = format!("SELECT * FROM articles WHERE id IN ({})", placeholders(ids.len()));
 
     let mut stmt = conn.prepare(&query)?;
     let articles = stmt
@@ -210,15 +214,11 @@ pub fn archive_by_ids(conn: &Connection, ids: &[i64]) -> Result<usize> {
         return Ok(0);
     }
 
-    // Generate placeholders: "?, ?, ?"
-    let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
-
     let query = format!(
         "UPDATE articles SET archived = 1 WHERE id IN ({})",
-        placeholders
+        placeholders(ids.len())
     );
 
-    // Execute with dynamic parameter binding
     let affected = conn
         .execute(&query, params_from_iter(ids))
         .context("Failed to archive articles")?;
@@ -231,15 +231,11 @@ pub fn unarchive_by_ids(conn: &Connection, ids: &[i64]) -> Result<usize> {
         return Ok(0);
     }
 
-    // Generate placeholders: "?, ?, ?"
-    let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
-
     let query = format!(
         "UPDATE articles SET archived = 0, read = 0 WHERE id IN ({})",
-        placeholders
+        placeholders(ids.len())
     );
 
-    // Execute with dynamic parameter binding
     let affected = conn
         .execute(&query, params_from_iter(ids))
         .context("Failed to unarchive articles")?;
@@ -252,9 +248,7 @@ pub fn delete_by_ids(conn: &Connection, ids: &[i64]) -> Result<usize> {
         return Ok(0);
     }
 
-    let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
-
-    let query = format!("DELETE FROM articles WHERE id IN ({})", placeholders);
+    let query = format!("DELETE FROM articles WHERE id IN ({})", placeholders(ids.len()));
 
     let affected = conn
         .execute(&query, params_from_iter(ids))
@@ -268,23 +262,20 @@ pub fn set_starred_by_ids(conn: &Connection, ids: &[i64], starred: bool) -> Resu
         return Ok(Vec::new());
     }
 
-    let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
-
+    // Use RETURNING to get updated articles in a single query
     let query = format!(
-        "UPDATE articles SET starred = {} WHERE id IN ({})",
+        "UPDATE articles SET starred = {} WHERE id IN ({}) RETURNING *",
         if starred { 1 } else { 0 },
-        placeholders
+        placeholders(ids.len())
     );
 
-    let affected = conn
-        .execute(&query, params_from_iter(ids))
+    let mut stmt = conn.prepare(&query)?;
+    let articles = stmt
+        .query_map(params_from_iter(ids), row_to_article)?
+        .collect::<rusqlite::Result<Vec<_>>>()
         .context("Failed to update starred status")?;
 
-    if affected > 0 {
-        find_by_ids(conn, ids)
-    } else {
-        Ok(Vec::new())
-    }
+    Ok(articles)
 }
 
 pub fn mark_read_by_ids(conn: &Connection, ids: &[i64]) -> Result<Vec<Article>> {
@@ -292,22 +283,19 @@ pub fn mark_read_by_ids(conn: &Connection, ids: &[i64]) -> Result<Vec<Article>> 
         return Ok(Vec::new());
     }
 
-    let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
-
+    // Use RETURNING to get updated articles in a single query
     let query = format!(
-        "UPDATE articles SET read = 1 WHERE id IN ({})",
-        placeholders
+        "UPDATE articles SET read = 1 WHERE id IN ({}) RETURNING *",
+        placeholders(ids.len())
     );
 
-    let affected = conn
-        .execute(&query, params_from_iter(ids))
+    let mut stmt = conn.prepare(&query)?;
+    let articles = stmt
+        .query_map(params_from_iter(ids), row_to_article)?
+        .collect::<rusqlite::Result<Vec<_>>>()
         .context("Failed to mark articles as read")?;
 
-    if affected > 0 {
-        find_by_ids(conn, ids)
-    } else {
-        Ok(Vec::new())
-    }
+    Ok(articles)
 }
 
 pub fn set_read_by_ids(conn: &Connection, ids: &[i64], read: bool) -> Result<Vec<Article>> {
@@ -315,23 +303,20 @@ pub fn set_read_by_ids(conn: &Connection, ids: &[i64], read: bool) -> Result<Vec
         return Ok(Vec::new());
     }
 
-    let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
-
+    // Use RETURNING to get updated articles in a single query
     let query = format!(
-        "UPDATE articles SET read = {} WHERE id IN ({})",
+        "UPDATE articles SET read = {} WHERE id IN ({}) RETURNING *",
         if read { 1 } else { 0 },
-        placeholders
+        placeholders(ids.len())
     );
 
-    let affected = conn
-        .execute(&query, params_from_iter(ids))
+    let mut stmt = conn.prepare(&query)?;
+    let articles = stmt
+        .query_map(params_from_iter(ids), row_to_article)?
+        .collect::<rusqlite::Result<Vec<_>>>()
         .context("Failed to update read status")?;
 
-    if affected > 0 {
-        find_by_ids(conn, ids)
-    } else {
-        Ok(Vec::new())
-    }
+    Ok(articles)
 }
 
 pub fn set_read_all(conn: &Connection, read: bool, include_archived: bool) -> Result<Vec<Article>> {
@@ -369,45 +354,37 @@ pub fn get_article_by_id(conn: &Connection, id: i64) -> Result<Option<Article>> 
 pub fn update_tags(conn: &Connection, id: i64, tags: Vec<String>) -> Result<Article> {
     let tags_json = serde_json::to_string(&tags)?;
 
-    conn.execute(
-        "UPDATE articles SET tags = ?1 WHERE id = ?2",
-        params![tags_json, id],
-    )
-    .context("Failed to update article tags")?;
-
-    let article = get_article_by_id(conn, id)?
-        .context("Article not found after update")?;
+    // Use RETURNING to get the updated article in a single query
+    let article = conn
+        .query_row(
+            "UPDATE articles SET tags = ?1 WHERE id = ?2 RETURNING *",
+            params![tags_json, id],
+            row_to_article,
+        )
+        .context("Failed to update article tags")?;
 
     Ok(article)
 }
 
 pub fn get_all_tags_with_counts(conn: &Connection) -> Result<Vec<(String, usize)>> {
-    use std::collections::HashMap;
+    // Use SQL to extract and count tags directly in the database.
+    // json_each() expands the JSON array, GROUP BY counts occurrences.
+    let mut stmt = conn.prepare(
+        "SELECT value, COUNT(*) as count 
+         FROM articles, json_each(tags) 
+         GROUP BY value 
+         ORDER BY value"
+    )?;
     
-    // Get all articles
-    let mut stmt = conn.prepare("SELECT tags FROM articles")?;
-    let tags_list = stmt
+    let result = stmt
         .query_map([], |row| {
-            let tags_json: String = row.get(0)?;
-            Ok(tags_json)
+            let tag: String = row.get(0)?;
+            let count: i64 = row.get(1)?;
+            Ok((tag, count as usize))
         })?
         .collect::<rusqlite::Result<Vec<_>>>()
         .context("Failed to query tags")?;
-    
-    // Count occurrences of each tag
-    let mut tag_counts: HashMap<String, usize> = HashMap::new();
-    
-    for tags_json in tags_list {
-        let tags: Vec<String> = serde_json::from_str(&tags_json).unwrap_or_default();
-        for tag in tags {
-            *tag_counts.entry(tag).or_insert(0) += 1;
-        }
-    }
-    
-    // Convert to vector and sort alphabetically
-    let mut result: Vec<(String, usize)> = tag_counts.into_iter().collect();
-    result.sort_by(|a, b| a.0.cmp(&b.0));
-    
+
     Ok(result)
 }
 
@@ -424,53 +401,57 @@ pub fn update_article_metadata(
 ) -> Result<Article> {
     let tags_json = serde_json::to_string(&tags)?;
 
-    conn.execute(
-        "UPDATE articles SET 
-            title = ?1, 
-            url = ?2, 
-            note = ?3, 
-            tags = ?4, 
-            starred = ?5, 
-            read = ?6, 
-            archived = ?7 
-         WHERE id = ?8",
-        params![
-            title,
-            url,
-            note,
-            tags_json,
-            if starred { 1 } else { 0 },
-            if read { 1 } else { 0 },
-            if archived { 1 } else { 0 },
-            id
-        ],
-    )
-    .context("Failed to update article metadata")?;
-
-    let article = get_article_by_id(conn, id)?
-        .context("Article not found after update")?;
+    // Use RETURNING to get the updated article in a single query
+    let article = conn
+        .query_row(
+            "UPDATE articles SET 
+                title = ?1, 
+                url = ?2, 
+                note = ?3, 
+                tags = ?4, 
+                starred = ?5, 
+                read = ?6, 
+                archived = ?7 
+             WHERE id = ?8
+             RETURNING *",
+            params![
+                title,
+                url,
+                note,
+                tags_json,
+                if starred { 1 } else { 0 },
+                if read { 1 } else { 0 },
+                if archived { 1 } else { 0 },
+                id
+            ],
+            row_to_article,
+        )
+        .context("Failed to update article metadata")?;
 
     Ok(article)
 }
 
 pub fn update_note(conn: &Connection, id: i64, note: Option<String>) -> Result<Article> {
-    conn.execute(
-        "UPDATE articles SET note = ?1 WHERE id = ?2",
-        params![note, id],
-    )
-    .context("Failed to update article note")?;
-
-    let article = get_article_by_id(conn, id)?
-        .context("Article not found after update")?;
+    // Use RETURNING to get the updated article in a single query
+    let article = conn
+        .query_row(
+            "UPDATE articles SET note = ?1 WHERE id = ?2 RETURNING *",
+            params![note, id],
+            row_to_article,
+        )
+        .context("Failed to update article note")?;
 
     Ok(article)
 }
 
 pub fn rename_tag(conn: &Connection, old_tag: &str, new_tag: &str) -> Result<usize> {
-    // Get all articles with the old tag
-    let mut stmt = conn.prepare("SELECT id, tags FROM articles")?;
+    // Only fetch articles that contain the old tag using json_each filtering
+    let mut stmt = conn.prepare(
+        "SELECT id, tags FROM articles 
+         WHERE EXISTS (SELECT 1 FROM json_each(tags) WHERE value = ?1)"
+    )?;
     let articles_with_tags: Vec<(i64, String)> = stmt
-        .query_map([], |row| {
+        .query_map(params![old_tag], |row| {
             let id: i64 = row.get(0)?;
             let tags_json: String = row.get(1)?;
             Ok((id, tags_json))
@@ -483,12 +464,10 @@ pub fn rename_tag(conn: &Connection, old_tag: &str, new_tag: &str) -> Result<usi
     for (id, tags_json) in articles_with_tags {
         let mut tags: Vec<String> = serde_json::from_str(&tags_json).unwrap_or_default();
         
-        // Check if this article has the old tag
+        // Replace old tag with new tag
         if let Some(pos) = tags.iter().position(|t| t == old_tag) {
-            // Replace with new tag
             tags[pos] = new_tag.to_string();
             
-            // Update the article
             let tags_json = serde_json::to_string(&tags)?;
             conn.execute(
                 "UPDATE articles SET tags = ?1 WHERE id = ?2",
@@ -503,10 +482,23 @@ pub fn rename_tag(conn: &Connection, old_tag: &str, new_tag: &str) -> Result<usi
 }
 
 pub fn merge_tags(conn: &Connection, tags_to_merge: &[String], into_tag: &str) -> Result<usize> {
-    // Get all articles
-    let mut stmt = conn.prepare("SELECT id, tags FROM articles")?;
+    if tags_to_merge.is_empty() {
+        return Ok(0);
+    }
+    
+    // Build a query that filters only articles containing any of the tags to merge
+    // Using json_each and OR conditions for each tag
+    let conditions: Vec<String> = tags_to_merge
+        .iter()
+        .map(|_| "EXISTS (SELECT 1 FROM json_each(tags) WHERE value = ?)".to_string())
+        .collect();
+    
+    let where_clause = conditions.join(" OR ");
+    let query = format!("SELECT id, tags FROM articles WHERE {}", where_clause);
+    
+    let mut stmt = conn.prepare(&query)?;
     let articles_with_tags: Vec<(i64, String)> = stmt
-        .query_map([], |row| {
+        .query_map(params_from_iter(tags_to_merge.iter()), |row| {
             let id: i64 = row.get(0)?;
             let tags_json: String = row.get(1)?;
             Ok((id, tags_json))
@@ -535,7 +527,6 @@ pub fn merge_tags(conn: &Connection, tags_to_merge: &[String], into_tag: &str) -
         if has_any_merge_tag && !tags.contains(&into_tag.to_string()) {
             tags.push(into_tag.to_string());
             
-            // Update the article
             let tags_json = serde_json::to_string(&tags)?;
             conn.execute(
                 "UPDATE articles SET tags = ?1 WHERE id = ?2",
@@ -550,10 +541,13 @@ pub fn merge_tags(conn: &Connection, tags_to_merge: &[String], into_tag: &str) -
 }
 
 pub fn delete_tag(conn: &Connection, tag: &str) -> Result<usize> {
-    // Get all articles
-    let mut stmt = conn.prepare("SELECT id, tags FROM articles")?;
+    // Only fetch articles that contain the tag using json_each filtering
+    let mut stmt = conn.prepare(
+        "SELECT id, tags FROM articles 
+         WHERE EXISTS (SELECT 1 FROM json_each(tags) WHERE value = ?1)"
+    )?;
     let articles_with_tags: Vec<(i64, String)> = stmt
-        .query_map([], |row| {
+        .query_map(params![tag], |row| {
             let id: i64 = row.get(0)?;
             let tags_json: String = row.get(1)?;
             Ok((id, tags_json))
@@ -566,12 +560,10 @@ pub fn delete_tag(conn: &Connection, tag: &str) -> Result<usize> {
     for (id, tags_json) in articles_with_tags {
         let mut tags: Vec<String> = serde_json::from_str(&tags_json).unwrap_or_default();
         
-        // Check if this article has the tag
+        // Remove the tag
         if let Some(pos) = tags.iter().position(|t| t == tag) {
-            // Remove the tag
             tags.remove(pos);
             
-            // Update the article
             let tags_json = serde_json::to_string(&tags)?;
             conn.execute(
                 "UPDATE articles SET tags = ?1 WHERE id = ?2",

@@ -1,6 +1,39 @@
 use anyhow::Result;
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
+
+/// Pre-compiled CSS selectors for metadata extraction.
+/// Using OnceLock ensures selectors are parsed once and reused across calls.
+struct MetadataSelectors {
+    og_title: Selector,
+    twitter_title: Selector,
+    title: Selector,
+    og_description: Selector,
+    twitter_description: Selector,
+    description: Selector,
+    favicon: Selector,
+}
+
+impl MetadataSelectors {
+    fn new() -> Self {
+        Self {
+            og_title: Selector::parse(r#"meta[property="og:title"]"#).unwrap(),
+            twitter_title: Selector::parse(r#"meta[name="twitter:title"]"#).unwrap(),
+            title: Selector::parse("title").unwrap(),
+            og_description: Selector::parse(r#"meta[property="og:description"]"#).unwrap(),
+            twitter_description: Selector::parse(r#"meta[name="twitter:description"]"#).unwrap(),
+            description: Selector::parse(r#"meta[name="description"]"#).unwrap(),
+            favicon: Selector::parse(r#"link[rel="icon"]"#).unwrap(),
+        }
+    }
+}
+
+/// Global singleton for pre-compiled selectors
+fn selectors() -> &'static MetadataSelectors {
+    static SELECTORS: OnceLock<MetadataSelectors> = OnceLock::new();
+    SELECTORS.get_or_init(MetadataSelectors::new)
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Metadata {
@@ -11,10 +44,11 @@ pub struct Metadata {
 
 pub fn extract_metadata(html: &str) -> Result<Metadata> {
     let document = Html::parse_document(html);
+    let selectors = selectors();
 
-    let title = extract_title(&document);
-    let description = extract_description(&document);
-    let favicon_url = extract_link(&document, "rel", "icon");
+    let title = extract_title(&document, selectors);
+    let description = extract_description(&document, selectors);
+    let favicon_url = extract_favicon(&document, selectors);
 
     let metadata = Metadata {
         title,
@@ -25,50 +59,52 @@ pub fn extract_metadata(html: &str) -> Result<Metadata> {
     Ok(metadata)
 }
 
-fn extract_link(document: &Html, attr: &str, value: &str) -> Option<String> {
-    let selector = Selector::parse(&format!(r#"link[{}="{}"]"#, attr, value)).ok()?;
-
+fn extract_favicon(document: &Html, selectors: &MetadataSelectors) -> Option<String> {
     document
-        .select(&selector)
+        .select(&selectors.favicon)
         .next()
         .and_then(|el| el.value().attr("href"))
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
 }
 
-fn extract_title(document: &Html) -> Option<String> {
-    if let Some(title) = extract_meta_content(&document, "property", "og:title") {
+fn extract_title(document: &Html, selectors: &MetadataSelectors) -> Option<String> {
+    // Try og:title first
+    if let Some(title) = extract_content(document, &selectors.og_title) {
         return Some(title);
     }
 
-    if let Some(title) = extract_meta_content(&document, "name", "twitter:title") {
+    // Try twitter:title next
+    if let Some(title) = extract_content(document, &selectors.twitter_title) {
         return Some(title);
     }
 
-    let title_selector = Selector::parse("title").ok()?;
+    // Fall back to <title> tag
     document
-        .select(&title_selector)
+        .select(&selectors.title)
         .next()
         .map(|el| el.inner_html().trim().to_string())
 }
 
-fn extract_description(document: &Html) -> Option<String> {
-    if let Some(description) = extract_meta_content(&document, "property", "og:description") {
+fn extract_description(document: &Html, selectors: &MetadataSelectors) -> Option<String> {
+    // Try og:description first
+    if let Some(description) = extract_content(document, &selectors.og_description) {
         return Some(description);
     }
 
-    if let Some(description) = extract_meta_content(&document, "name", "twitter:description") {
+    // Try twitter:description next
+    if let Some(description) = extract_content(document, &selectors.twitter_description) {
         return Some(description);
     }
 
-    extract_meta_content(&document, "name", "description")
+    // Fall back to meta name="description"
+    extract_content(document, &selectors.description)
 }
 
-fn extract_meta_content(document: &Html, attr: &str, value: &str) -> Option<String> {
-    let selector = Selector::parse(&format!(r#"meta[{}="{}"]"#, attr, value)).ok()?;
-
+/// Helper to extract content attribute from a meta tag using a pre-compiled selector
+fn extract_content(document: &Html, selector: &Selector) -> Option<String> {
     document
-        .select(&selector)
+        .select(selector)
         .next()
         .and_then(|el| el.value().attr("content"))
         .map(|s| s.trim().to_string())

@@ -1,15 +1,27 @@
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use reqwest::{redirect::Policy, Url};
+use reqwest::{blocking::Client, redirect::Policy, Url};
+
+/// Returns a reusable HTTP client instance.
+/// The client is created once and reused for all requests, avoiding the
+/// overhead of building a new client (TLS initialization, connection pool setup)
+/// for each request.
+fn http_client() -> &'static Client {
+    static CLIENT: OnceLock<Client> = OnceLock::new();
+    CLIENT.get_or_init(|| {
+        Client::builder()
+            .user_agent("Mozilla/5.0 (compatible; Stash/1.0)")
+            .redirect(Policy::limited(10))
+            .timeout(Duration::from_secs(10))
+            .build()
+            .expect("Failed to build HTTP client")
+    })
+}
 
 pub fn fetch_html(url: &String) -> Result<String> {
-    let client = reqwest::blocking::Client::builder()
-        .user_agent("Mozilla/5.0 (compatible; Stash/1.0)")
-        .redirect(Policy::limited(10))
-        .timeout(Duration::from_secs(10))
-        .build()
-        .context("Failed to build HTTP client")?;
+    let client = http_client();
 
     let response = client
         .get(url)
