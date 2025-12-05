@@ -16,7 +16,7 @@ fn http_client() -> &'static Client {
             .redirect(Policy::limited(10))
             .timeout(Duration::from_secs(10))
             .build()
-            .expect("Failed to build HTTP client")
+            .expect("Failed to build HTTP client: check system TLS configuration")
     })
 }
 

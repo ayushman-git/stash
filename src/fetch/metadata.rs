@@ -18,13 +18,20 @@ struct MetadataSelectors {
 impl MetadataSelectors {
     fn new() -> Self {
         Self {
-            og_title: Selector::parse(r#"meta[property="og:title"]"#).unwrap(),
-            twitter_title: Selector::parse(r#"meta[name="twitter:title"]"#).unwrap(),
-            title: Selector::parse("title").unwrap(),
-            og_description: Selector::parse(r#"meta[property="og:description"]"#).unwrap(),
-            twitter_description: Selector::parse(r#"meta[name="twitter:description"]"#).unwrap(),
-            description: Selector::parse(r#"meta[name="description"]"#).unwrap(),
-            favicon: Selector::parse(r#"link[rel="icon"]"#).unwrap(),
+            og_title: Selector::parse(r#"meta[property="og:title"]"#)
+                .expect("Failed to parse og:title selector"),
+            twitter_title: Selector::parse(r#"meta[name="twitter:title"]"#)
+                .expect("Failed to parse twitter:title selector"),
+            title: Selector::parse("title")
+                .expect("Failed to parse title selector"),
+            og_description: Selector::parse(r#"meta[property="og:description"]"#)
+                .expect("Failed to parse og:description selector"),
+            twitter_description: Selector::parse(r#"meta[name="twitter:description"]"#)
+                .expect("Failed to parse twitter:description selector"),
+            description: Selector::parse(r#"meta[name="description"]"#)
+                .expect("Failed to parse description selector"),
+            favicon: Selector::parse(r#"link[rel="icon"]"#)
+                .expect("Failed to parse favicon selector"),
         }
     }
 }

@@ -488,13 +488,13 @@ pub fn merge_tags(conn: &Connection, tags_to_merge: &[String], into_tag: &str) -
     
     // Build a query that filters only articles containing any of the tags to merge
     // Using json_each and OR conditions for each tag
-    let conditions: Vec<String> = tags_to_merge
-        .iter()
-        .map(|_| "EXISTS (SELECT 1 FROM json_each(tags) WHERE value = ?)".to_string())
-        .collect();
+    const CONDITION: &str = "EXISTS (SELECT 1 FROM json_each(tags) WHERE value = ?)";
+    let conditions = std::iter::repeat(CONDITION)
+        .take(tags_to_merge.len())
+        .collect::<Vec<_>>()
+        .join(" OR ");
     
-    let where_clause = conditions.join(" OR ");
-    let query = format!("SELECT id, tags FROM articles WHERE {}", where_clause);
+    let query = format!("SELECT id, tags FROM articles WHERE {}", conditions);
     
     let mut stmt = conn.prepare(&query)?;
     let articles_with_tags: Vec<(i64, String)> = stmt
